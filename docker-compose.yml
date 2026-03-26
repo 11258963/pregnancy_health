@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  pregnancy_health:
+    build: .
+    container_name: pregnancy_health
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_PATH=/data/pregnancy.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}检查记录 - 人生副本{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .checkup-table { font-size: 0.85rem; }
+        .checkup-table th, .checkup-table td { padding: 8px 4px; white-space: nowrap; }
+        .checkup-table .btn { font-size: 0.75rem; padding: 4px 8px; }
+        .checkup-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>检查记录</h2>
+    <div class="checkup-header">
+        <a href="{{ url_for('checkup.all_files') }}" class="btn btn-outline-info me-2"><i class="bi bi-images me-1"></i>查看附件</a>
+        <a href="{{ url_for('checkup.add') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>添加记录</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if records %}
+            <!-- 电脑端表格 -->
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th style="width: 100px;">日期</th><th style="width: 100px;">孕周</th><th>检查项目</th><th style="width: 200px;">备注</th><th style="width: 200px;">操作</th></tr></thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td>{{ r.checkup_date.strftime('%Y/%m/%d') }}</td>
+                            <td>{{ r.gestational_week }}周{{ r.gestational_day }}天</td>
+                            <td style="white-space: normal; word-break: break-word;">{{ r.checkup_item }}</td>
+                            <td style="white-space: normal;">{{ r.doctor_notes or '-' }}</td>
+                            <td>
+                                <a href="{{ url_for('checkup.detail', id=r.id) }}" class="btn btn-sm btn-outline-info">详情</a>
+                                <form method="POST" action="{{ url_for('checkup.delete', id=r.id) }}" class="d-inline" onsubmit="return confirm('确定删除？')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- 移动端表格 -->
+            <div class="table-responsive d-md-none">
+                <table class="table table-hover mb-0 checkup-table">
+                    <thead><tr><th>日期</th><th>孕周</th><th>项目</th><th>操作</th></tr></thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td>{{ r.checkup_date.strftime('%m/%d') }}</td>
+                            <td>{{ r.gestational_week }}周{{ r.gestational_day }}天</td>
+                            <td style="white-space: pre-line;">{{ r.checkup_item.replace('、', '\n') if '、' in r.checkup_item else r.checkup_item.replace(', ', '\n') }}</td>
+                            <td>
+                                <a href="{{ url_for('checkup.detail', id=r.id) }}" class="btn btn-sm btn-outline-info">详情</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted text-center py-4">暂无记录，点击上方按钮添加</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

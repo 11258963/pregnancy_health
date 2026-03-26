@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}编辑体重记录 - 人生副本{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .page-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-header">
+    <h2>编辑体重记录</h2>
+    <a href="{{ url_for('weight.list_view') }}" class="btn btn-outline-secondary">返回列表</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">记录日期</label>
+                    <input type="date" name="record_date" class="form-control" value="{{ record.record_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">记录时间</label>
+                    <div class="d-flex gap-2">
+                        <select name="record_hour" class="form-select">
+                            {% for h in range(0, 24) %}
+                            <option value="{{ "%02d" % h }}" {% if record.record_time and record.record_time.hour == h %}selected{% endif %}>{{ "%02d" % h }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="fs-5">:</span>
+                        <select name="record_minute" class="form-select">
+                            {% for m in range(0, 60, 5) %}
+                            <option value="{{ "%02d" % m }}" {% if record.record_time and record.record_time.minute // 5 == m // 5 %}selected{% endif %}>{{ "%02d" % m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">体重 kg</label>
+                    <input type="number" step="0.1" name="weight" class="form-control" value="{{ record.weight }}" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

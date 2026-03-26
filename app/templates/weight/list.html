@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}体重记录 - 人生副本{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .page-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-header">
+    <h2>体重记录</h2>
+    <div>
+        <a href="{{ url_for('weight.chart') }}" class="btn btn-outline-primary"><i class="bi bi-graph-up me-1"></i>图表</a>
+        <a href="{{ url_for('weight.add') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>添加记录</a>
+    </div>
+</div>
+
+{% if sync_data %}
+<div class="card mb-3 border-success">
+    <div class="card-body">
+        <span id="syncDataText" class="d-none">{{ sync_data }}</span>
+        <div class="d-flex gap-2 w-100">
+            <button class="btn btn-sm btn-outline-secondary flex-fill" style="font-size: 0.8rem;" onclick="var i=document.createElement('input');i.value=document.getElementById('syncDataText').innerText;document.body.appendChild(i);i.select();document.execCommand('copy');document.body.removeChild(i)">复制最新记录</button>
+            <a href="shortcuts://run-shortcut?name=新增不重复体重到health&text={{ sync_data|urlencode }}" class="btn btn-sm btn-success flex-fill" style="font-size: 0.8rem;">同步到 Apple Health</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body">
+        {% if records %}
+            <!-- 电脑端表格 -->
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-hover text-center">
+                    <thead><tr><th class="text-center">孕周</th><th class="text-center">日期</th><th class="text-center">时间</th><th class="text-center">体重 kg</th><th class="text-center">建议范围 kg</th><th class="text-center">操作</th></tr></thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td>{{ r.gestational_week }}周{{ r.gestational_day }}天</td>
+                            <td>{{ r.record_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ r.record_time.strftime('%H:%M') if r.record_time else '-' }}</td>
+                            <td class="{% if r.suggested_min and r.suggested_max and (r.weight < r.suggested_min or r.weight > r.suggested_max) %}text-danger fw-bold{% endif %}">{{ r.weight }}</td>
+                            <td>
+                                {% if r.suggested_min and r.suggested_max %}
+                                    {{ r.suggested_min }}-{{ r.suggested_max }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('weight.edit', id=r.id) }}" class="btn btn-sm btn-outline-secondary">编辑</a>
+                                <form method="POST" action="{{ url_for('weight.delete', id=r.id) }}" class="d-inline" onsubmit="return confirm('确定删除？')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- 移动端表格 -->
+            <div class="table-responsive d-md-none">
+                <table class="table table-hover text-center" style="font-size: 1rem;">
+                    <thead><tr><th class="text-center">日期</th><th class="text-center">体重 kg</th><th class="text-center">操作</th></tr></thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td>
+                                <div>{{ r.record_date.strftime('%m/%d') }}</div>
+                                <small class="text-muted">{{ r.gestational_week }}周{{ r.gestational_day }}天</small>
+                            </td>
+                            <td class="{% if r.suggested_min and r.suggested_max and (r.weight < r.suggested_min or r.weight > r.suggested_max) %}text-danger fw-bold{% endif %}">
+                                <div>{{ r.weight }}</div>
+                                {% if r.suggested_min and r.suggested_max %}
+                                    <small class="text-muted">{{ r.suggested_min }}-{{ r.suggested_max }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle" style="white-space: nowrap;">
+                                <a href="{{ url_for('weight.edit', id=r.id) }}" class="btn btn-sm btn-outline-secondary" style="font-size: 0.8rem;">编辑</a>
+                                <form method="POST" action="{{ url_for('weight.delete', id=r.id) }}" class="d-inline" onsubmit="return confirm('确定删除？')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" style="font-size: 0.8rem;">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted text-center py-4">暂无记录，点击上方按钮添加</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

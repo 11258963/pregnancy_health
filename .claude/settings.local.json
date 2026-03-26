@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/docker/bin/**)",
+      "Bash(brew services:*)",
+      "Bash(/usr/local/bin/docker --version)",
+      "Read(//Applications/**)"
+    ]
+  }
+}

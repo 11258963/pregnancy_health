@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}检查详情 - 人生副本{% endblock %}
+
+{% block extra_css %}
+<style>
+    .modal-backdrop.show { opacity: 0.85; }
+    #imageModal .modal-content { background: transparent; }
+    #imageModal .modal-body img { max-height: 85vh; object-fit: contain; }
+    @media (max-width: 768px) {
+        #imageModal .modal-dialog { max-width: 95vw; margin: 0.5rem auto; }
+        .page-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+    }
+    .item-name { cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-header">
+    <h2>检查详情</h2>
+    <div>
+        <a href="{{ url_for('checkup.edit', id=record.id) }}" class="btn btn-outline-primary">编辑</a>
+        <a href="{{ url_for('checkup.list') }}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="text-muted">检查日期</label>
+                <p class="fs-5">{{ record.checkup_date.strftime('%Y年%m月%d日') }}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted">孕周</label>
+                <p class="fs-5">{{ record.gestational_week }}周{{ record.gestational_day }}天</p>
+            </div>
+            <div class="col-md-6">
+                <label class="text-muted">检查项目</label>
+                <p class="fs-5">
+                    {% for item_name in record.checkup_item.split(', ') %}
+                    <span class="item-name" onclick="showItemDescByName('{{ item_name }}')">{{ item_name }}</span>{% if not loop.last %}、{% endif %}
+                    {% endfor %}
+                </p>
+            </div>
+            <div class="col-12">
+                <label class="text-muted">备注</label>
+                <p class="fs-5">{{ record.doctor_notes or '-' }}</p>
+            </div>
+            {% if record.next_appointment %}
+            <div class="col-md-6">
+                <label class="text-muted">下次预约</label>
+                <p class="fs-5 text-primary">{{ record.next_appointment.strftime('%Y年%m月%d日') }}</p>
+            </div>
+            {% endif %}
+
+            {# 附件 #}
+            {% if images or documents %}
+            <div class="col-12 mt-3">
+                <label class="text-muted">附件</label>
+            </div>
+
+            {# 图片 #}
+            {% if images %}
+            <div class="col-12">
+                <div class="d-flex flex-wrap gap-2">
+                    {% for f in images %}
+                    <div class="position-relative" style="width: 100px; height: 100px;">
+                        <a href="{{ url_for('checkup.file', record_id=record.id, filename=f.stored_filename) }}"
+                           target="_blank"
+                           data-bs-toggle="modal"
+                           data-bs-target="#imageModal{{ f.id }}">
+                            <img src="{{ url_for('checkup.file', record_id=record.id, filename=f.stored_filename) }}"
+                                 class="img-thumbnail w-100 h-100"
+                                 style="object-fit: cover; cursor: pointer;"
+                                 alt="{{ f.original_filename }}">
+                        </a>
+                    </div>
+
+                    {# 图片放大模态框 #}
+                    <div class="modal fade" id="imageModal{{ f.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content bg-transparent border-0">
+                                <div class="modal-body p-0 text-end position-relative">
+                                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+                                    <img src="{{ url_for('checkup.file', record_id=record.id, filename=f.stored_filename) }}"
+                                         class="img-fluid d-block mx-auto"
+                                         alt="{{ f.original_filename }}">
+                                    <p class="text-white text-center mt-2 mb-0">{{ f.original_filename }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# 文档 #}
+            {% if documents %}
+            <div class="col-12">
+                <div class="list-group list-group-flush">
+                    {% for f in documents %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-text text-primary me-2" style="font-size: 1.5rem;"></i>
+                            <div>
+                                <a href="{{ url_for('checkup.file', record_id=record.id, filename=f.stored_filename) }}"
+                                   target="_blank"
+                                   class="text-decoration-none">
+                                    {{ f.original_filename }}
+                                </a>
+                                <small class="text-muted d-block">{{ (f.file_size / 1024)|round(1) }} KB</small>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('checkup.file', record_id=record.id, filename=f.stored_filename) }}"
+                           target="_blank"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- 项目简介弹窗 -->
+            <div class="modal fade" id="itemDescModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="itemDescTitle"></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="itemDescContent"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+const itemDescriptions = {{ descriptions|tojson }};
+const itemNames = {{ items|tojson }};
+
+function showItemDesc(code) {
+    document.getElementById('itemDescTitle').textContent = itemNames[code] || '';
+    document.getElementById('itemDescContent').textContent = itemDescriptions[code] || '';
+    var modal = new bootstrap.Modal(document.getElementById('itemDescModal'));
+    modal.show();
+}
+
+function showItemDescByName(name) {
+    // Find the code by matching the name
+    var code = Object.keys(itemNames).find(function(k) { return itemNames[k] === name; });
+    if (code) {
+        showItemDesc(code);
+    }
+}
+</script>
+{% endblock %}
+
+{% endblock %}

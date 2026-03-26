@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}添加体重记录 - 人生副本{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media (max-width: 768px) {
+        .page-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-header">
+    <h2>添加体重记录</h2>
+    <a href="{{ url_for('weight.list_view') }}" class="btn btn-outline-secondary">返回列表</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">记录日期</label>
+                    <input type="date" name="record_date" class="form-control" value="{{ record_date }}" max="{{ today }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">记录时间</label>
+                    <input type="time" name="record_time" class="form-control" value="{{ current_time }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">体重 kg</label>
+                    <input type="number" step="0.1" name="weight" class="form-control" placeholder="如: 65.5" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

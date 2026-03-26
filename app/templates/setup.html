@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}首次设置 - 人生副本{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mt-5">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-calendar-check me-2"></i>欢迎使用人生副本</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">请设置您的预产期，以便我们计算当前孕周。</p>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">预产期</label>
+                        <input type="date" name="due_date" class="form-control" required>
+                        <div class="form-text">请输入医生告知的预产期</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">开始使用</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

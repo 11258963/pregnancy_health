@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}编辑检查记录 - 人生副本{% endblock %}
+
+{% block extra_css %}
+<style>
+    .item-name { cursor: pointer; }
+    @media (max-width: 768px) {
+        .page-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 page-header">
+    <h2>编辑检查记录</h2>
+    <div>
+        <form method="POST" action="{{ url_for('checkup.delete', id=record.id) }}" class="d-inline" onsubmit="return confirm('确定删除这条记录？')">
+            <button type="submit" class="btn btn-outline-danger">删除</button>
+        </form>
+        <a href="{{ url_for('checkup.list') }}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">检查日期</label>
+                    <input type="date" name="checkup_date" class="form-control" value="{{ record.checkup_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">检查项目（可多选；点击项目查看简介）</label>
+                    <div class="border rounded p-3" style="background-color: #f8f9fa;">
+                        {% for group_name, codes in groups %}
+                        <div class="mb-2{% if not loop.last %} border-bottom pb-2 mb-3{% endif %}">
+                            <small class="text-muted fw-bold">{{ group_name }}</small>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                {% for code in codes %}
+                                <div class="form-check d-flex align-items-center gap-2">
+                                    <input class="form-check-input" type="checkbox" name="checkup_items" value="{{ items[code] }}" id="item_{{ code }}" {% if items[code] in record.checkup_item %}checked{% endif %}>
+                                    <span class="item-name" onclick="showItemDesc('{{ code }}')">{{ items[code] }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 项目简介弹窗 -->
+                <div class="modal fade" id="itemDescModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="itemDescTitle"></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p id="itemDescContent"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">备注</label>
+                    <textarea name="doctor_notes" class="form-control" rows="2">{{ record.doctor_notes or '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">下次预约日期</label>
+                    <input type="date" name="next_appointment" class="form-control" value="{{ record.next_appointment.strftime('%Y-%m-%d') if record.next_appointment else '' }}">
+                </div>
+
+                {# 当前附件 #}
+                {% if images or documents %}
+                <div class="col-12">
+                    <label class="form-label">当前附件</label>
+                    <div class="border rounded p-3" style="background-color: #f8f9fa;">
+                        {# 图片 #}
+                        {% if images %}
+                        <div class="mb-3">
+                            <small class="text-muted fw-bold">图片：</small>
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                {% for f in images %}
+                                <div class="position-relative" style="width: 80px; height: 80px;">
+                                    <img src="{{ url_for('checkup.file', record_id=record.id, filename=f.stored_filename) }}"
+                                         class="img-thumbnail w-100 h-100"
+                                         style="object-fit: cover;"
+                                         alt="{{ f.original_filename }}">
+                                    <form method="POST" action="{{ url_for('checkup.delete_file', file_id=f.id) }}"
+                                          class="position-absolute top-0 end-0"
+                                          onsubmit="return confirm('确定删除此图片？')">
+                                        <button type="submit" class="btn btn-sm btn-danger rounded-circle p-1" style="width:20px;height:20px;">
+                                            <i class="bi bi-x" style="font-size:10px;"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {# 文档 #}
+                        {% if documents %}
+                        <div>
+                            <small class="text-muted fw-bold">文档：</small>
+                            <div class="mt-2">
+                                {% for f in documents %}
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-file-earmark-text text-primary me-2"></i>
+                                        <span class="small">{{ f.original_filename }}</span>
+                                    </div>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('checkup.file', record_id=record.id, filename=f.stored_filename) }}"
+                                           target="_blank"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('checkup.delete_file', file_id=f.id) }}" class="d-inline"
+                                              onsubmit="return confirm('确定删除此文件？')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {# 添加新附件 #}
+                <div class="col-12">
+                    <label class="form-label">添加新附件</label>
+                    <div class="border rounded p-3" style="background-color: #f8f9fa;">
+                        <small class="text-muted d-block mb-2">支持的格式：图片 (JPG, PNG, GIF, WebP)，文档 (PDF, Word, Excel)</small>
+                        <input type="file" name="files" class="form-control" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx">
+                        <small class="text-muted d-block mt-1">最大 16MB</small>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+const itemDescriptions = {{ descriptions|tojson }};
+const itemNames = {{ items|tojson }};
+
+function showItemDesc(code) {
+    document.getElementById('itemDescTitle').textContent = itemNames[code] || '';
+    document.getElementById('itemDescContent').textContent = itemDescriptions[code] || '';
+    var modal = new bootstrap.Modal(document.getElementById('itemDescModal'));
+    modal.show();
+}
+</script>
+{% endblock %}
+
+{% endblock %}

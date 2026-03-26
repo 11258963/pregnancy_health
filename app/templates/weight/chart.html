@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}{{ chart_title }} - 人生副本{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container { position: relative; height: 350px; }
+    @media (max-width: 576px) {
+        .card-body { padding: 0.5rem !important; }
+        .chart-container { height: 280px !important; width: 100% !important; overflow-x: auto !important; }
+        .chart-container canvas { max-width: 150% !important; height: auto !important; }
+        .nav-tabs { font-size: 0.75rem; flex-wrap: nowrap; overflow-x: auto; }
+        .nav-tabs .nav-link { padding: 6px 8px; white-space: nowrap; font-size: 0.8rem; }
+        .weight-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>体重记录</h2>
+    <div class="weight-header">
+        <a href="{{ url_for('weight.list_view') }}" class="btn btn-outline-secondary">列表</a>
+        <a href="{{ url_for('weight.add') }}" class="btn btn-success">添加记录</a>
+    </div>
+</div>
+
+<!-- 图表切换导航 -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if '有记录' in chart_title %}active{% endif %}" href="{{ url_for('weight.chart') }}">体重曲线-有记录</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if '体重曲线-日' in chart_title %}active{% endif %}" href="{{ url_for('weight.chart_by_date') }}">体重曲线-日</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if '孕周' in chart_title %}active{% endif %}" href="{{ url_for('weight.chart_by_week') }}">体重曲线-孕周</a>
+    </li>
+</ul>
+
+{% if data.labels and data.labels|length > 0 %}
+<div class="row g-4">
+    <!-- 图表 -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="chart-container" style="height: 450px;">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-graph-up text-muted" style="font-size: 4rem;"></i>
+        <p class="text-muted mt-3 fs-5">暂无体重记录</p>
+        <a href="{{ url_for('weight.add') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus-lg me-2"></i>添加第一条记录
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if data.labels and data.labels|length > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    const ctx = document.getElementById('weightChart').getContext('2d');
+    const isMobile = window.innerWidth <= 576;
+</script>
+{% if '孕周' in chart_title %}
+<script>
+    const labels = {{ data.labels | tojson }};
+    const weights = {{ data.weights | tojson }};
+    const suggestedMin = {{ data.suggested_min | tojson }};
+    const suggestedMax = {{ data.suggested_max | tojson }};
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    data: suggestedMin,
+                    borderColor: 'rgba(91, 181, 160, 0.6)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: false,
+                    order: 2
+                },
+                {
+                    data: suggestedMax,
+                    borderColor: 'rgba(91, 181, 160, 0.6)',
+                    backgroundColor: 'rgba(91, 181, 160, 0.15)',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: '-1',
+                    order: 2
+                },
+                {
+                    label: '平均体重',
+                    data: weights,
+                    borderColor: '#5bb5a0',
+                    backgroundColor: '#5bb5a0',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: isMobile ? 2.5 : 5,
+                    pointBackgroundColor: '#5bb5a0',
+                    pointHoverRadius: isMobile ? 4 : 8,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            return labels[context[0].dataIndex];
+                        },
+                        label: function(context) {
+                            return '平均体重: ' + context.parsed.y.toFixed(1) + ' kg';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: false, title: { display: true, text: '平均体重 (kg)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: {
+                    title: { display: true, text: '孕周' },
+                    grid: { display: false },
+                    ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: isMobile ? 6 : 12, padding: 5 }
+                }
+            }
+        }
+    });
+</script>
+{% elif '日' in chart_title %}
+<script>
+    const labels = {{ data.labels | tojson }};
+    const weeks = {{ data.weeks | tojson }};
+    const dates = {{ data.dates | tojson }};
+    const weights = {{ data.weights | tojson }};
+    const suggestedMin = {{ data.suggested_min | tojson }};
+    const suggestedMax = {{ data.suggested_max | tojson }};
+    const hasRecord = {{ data.get('has_record', [])|tojson }};
+
+    const pointColors = weights.map((w, i) => {
+        if (w === null) return 'transparent';
+        if (w < suggestedMin[i] || w > suggestedMax[i]) {
+            return '#dc3545';
+        }
+        return '#5bb5a0';
+    });
+
+    const pointBorderColors = weights.map((w, i) => {
+        if (w === null) return 'transparent';
+        if (w < suggestedMin[i] || w > suggestedMax[i]) {
+            return '#dc3545';
+        }
+        return '#5bb5a0';
+    });
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    data: suggestedMin,
+                    borderColor: 'rgba(91, 181, 160, 0.6)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: false,
+                    spanGaps: true,
+                    order: 2
+                },
+                {
+                    data: suggestedMax,
+                    borderColor: 'rgba(91, 181, 160, 0.6)',
+                    backgroundColor: 'rgba(91, 181, 160, 0.15)',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: '-1',
+                    spanGaps: true,
+                    order: 2
+                },
+                {
+                    label: '体重',
+                    data: weights,
+                    borderColor: '#5bb5a0',
+                    backgroundColor: pointColors,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    spanGaps: true,
+                    pointRadius: isMobile ? 2 : 4,
+                    pointBackgroundColor: pointColors,
+                    pointBorderColor: pointBorderColors,
+                    pointHoverRadius: isMobile ? 3.5 : 7,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const i = context[0].dataIndex;
+                            return dates[i] + (weeks[i] ? ' ' + weeks[i] : '');
+                        },
+                        label: function(context) {
+                            if (context.parsed.y === null) return '';
+                            return '体重: ' + context.parsed.y + ' kg';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: false, title: { display: true, text: '体重 (kg)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: {
+                    title: { display: false },
+                    grid: { display: false },
+                    ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 10, padding: 5 }
+                }
+            }
+        }
+    });
+</script>
+{% else %}
+<script>
+    const labels = {{ data.labels | tojson }};
+    const weeks = {{ data.weeks | tojson }};
+    const dates = {{ data.dates | tojson }};
+    const weights = {{ data.weights | tojson }};
+    const suggestedMin = {{ data.suggested_min | tojson }};
+    const suggestedMax = {{ data.suggested_max | tojson }};
+
+    const pointColors = weights.map((w, i) => {
+        if (w < suggestedMin[i] || w > suggestedMax[i]) {
+            return '#dc3545';
+        }
+        return '#5bb5a0';
+    });
+
+    const pointBorderColors = weights.map((w, i) => {
+        if (w < suggestedMin[i] || w > suggestedMax[i]) {
+            return '#dc3545';
+        }
+        return '#5bb5a0';
+    });
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    data: suggestedMin,
+                    borderColor: 'rgba(91, 181, 160, 0.6)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: false,
+                    order: 2
+                },
+                {
+                    data: suggestedMax,
+                    borderColor: 'rgba(91, 181, 160, 0.6)',
+                    backgroundColor: 'rgba(91, 181, 160, 0.15)',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    tension: 0.4,
+                    fill: '-1',
+                    order: 2
+                },
+                {
+                    label: '体重',
+                    data: weights,
+                    borderColor: pointBorderColors,
+                    backgroundColor: pointColors,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: isMobile ? 2 : 4,
+                    pointBackgroundColor: pointColors,
+                    pointBorderColor: pointBorderColors,
+                    pointHoverRadius: isMobile ? 3.5 : 7,
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const i = context[0].dataIndex;
+                            return dates[i] + ' ' + weeks[i];
+                        },
+                        label: function(context) {
+                            return '体重: ' + context.parsed.y + ' kg';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: false, title: { display: true, text: '体重 (kg)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: {
+                    title: { display: false },
+                    grid: { display: false },
+                    ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 10, padding: 5 }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endif %}
+{% endblock %}
