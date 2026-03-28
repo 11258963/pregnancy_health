@@ -27,7 +27,7 @@
    ```
 
 4. 访问应用
-   - 打开浏览器访问 `http://<NAS_IP>:5000`
+   - 打开浏览器访问 `http://<NAS_IP>:5001`
    - 首次使用需要设置预产期
 
 ### 方式二：使用 Docker 命令
@@ -37,7 +37,7 @@ cd /share/Container/pregnancy_health
 docker build -t pregnancy_health .
 docker run -d \
   --name pregnancy_health \
-  -p 5000:5000 \
+  -p 5001:5002 \
   -v /share/Container/pregnancy_health/data:/data \
   pregnancy_health
 ```

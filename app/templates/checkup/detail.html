@@ -12,13 +12,79 @@
         .page-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
     }
     .item-name { cursor: pointer; }
+
+    /* iOS Mail–style prev/next（配色贴近本站主色，避免过淡看不出） */
+    .checkup-mail-nav {
+        display: inline-flex;
+        align-items: stretch;
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--primary-light, #e8f5f2);
+        border: 1px solid rgba(91, 181, 160, 0.45);
+        box-shadow: 0 1px 2px rgba(91, 181, 160, 0.15);
+    }
+    .checkup-mail-nav__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        min-height: 44px;
+        padding: 0 10px;
+        color: var(--primary-dark, #4a9a87);
+        text-decoration: none;
+        border: none;
+        background: transparent;
+        transition: background 0.15s ease;
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+    .checkup-mail-nav__btn:hover:not(.is-disabled) {
+        background: rgba(91, 181, 160, 0.18);
+        color: var(--primary-color, #5bb5a0);
+    }
+    .checkup-mail-nav__btn.is-disabled {
+        color: rgba(90, 110, 110, 0.35);
+        pointer-events: none;
+        cursor: default;
+    }
+    .checkup-mail-nav__divider {
+        width: 1px;
+        align-self: stretch;
+        background: rgba(91, 181, 160, 0.35);
+        flex-shrink: 0;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 page-header">
-    <h2>检查详情</h2>
-    <div>
+<div class="d-flex justify-content-between align-items-center mb-4 page-header flex-wrap gap-2">
+    <h2 class="mb-0">检查详情</h2>
+    <div class="d-flex align-items-center gap-2 ms-auto">
+        <div class="checkup-mail-nav" role="group" aria-label="切换相邻检查记录">
+            {% if neighbor_newer %}
+            <a href="{{ url_for('checkup.detail', id=neighbor_newer.id) }}"
+               class="checkup-mail-nav__btn"
+               title="较新一次检查">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/></svg>
+            </a>
+            {% else %}
+            <span class="checkup-mail-nav__btn is-disabled" title="已是最新一次" aria-disabled="true">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/></svg>
+            </span>
+            {% endif %}
+            <span class="checkup-mail-nav__divider" aria-hidden="true"></span>
+            {% if neighbor_older %}
+            <a href="{{ url_for('checkup.detail', id=neighbor_older.id) }}"
+               class="checkup-mail-nav__btn"
+               title="较旧一次检查">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+            </a>
+            {% else %}
+            <span class="checkup-mail-nav__btn is-disabled" title="已是最早一次" aria-disabled="true">
+                <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+            </span>
+            {% endif %}
+        </div>
         <a href="{{ url_for('checkup.edit', id=record.id) }}" class="btn btn-outline-primary">编辑</a>
         <a href="{{ url_for('checkup.list') }}" class="btn btn-outline-secondary">返回列表</a>
     </div>
@@ -142,6 +208,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block extra_js %}
 <script>
@@ -156,13 +223,10 @@ function showItemDesc(code) {
 }
 
 function showItemDescByName(name) {
-    // Find the code by matching the name
     var code = Object.keys(itemNames).find(function(k) { return itemNames[k] === name; });
     if (code) {
         showItemDesc(code);
     }
 }
 </script>
-{% endblock %}
-
 {% endblock %}

@@ -4,7 +4,7 @@ import os
 from app import db
 from app.models import CheckupRecord, CheckupFile, Settings
 from app.utils.file_handler import validate_file, save_file, delete_file as delete_file_handler, delete_all_files_for_record, get_file_path
-from sqlalchemy import desc
+from sqlalchemy import desc, and_, or_
 
 bp = Blueprint('checkup', __name__, url_prefix='/checkup')
 
@@ -114,12 +114,43 @@ def add():
                            descriptions=CheckupRecord.CHECKUP_DESCRIPTIONS)
 
 
+def _checkup_neighbor_newer(record):
+    """按检查日期（新→旧）列表中，当前条的「上一篇」：日期更新或同日更晚创建的记录。"""
+    return CheckupRecord.query.filter(
+        or_(
+            CheckupRecord.checkup_date > record.checkup_date,
+            and_(CheckupRecord.checkup_date == record.checkup_date, CheckupRecord.id > record.id),
+        )
+    ).order_by(CheckupRecord.checkup_date.asc(), CheckupRecord.id.asc()).first()
+
+
+def _checkup_neighbor_older(record):
+    """「下一篇」：日期更旧或同日更早的记录。"""
+    return CheckupRecord.query.filter(
+        or_(
+            CheckupRecord.checkup_date < record.checkup_date,
+            and_(CheckupRecord.checkup_date == record.checkup_date, CheckupRecord.id < record.id),
+        )
+    ).order_by(CheckupRecord.checkup_date.desc(), CheckupRecord.id.desc()).first()
+
+
 @bp.route('/detail/<int:id>')
 def detail(id):
     record = CheckupRecord.query.get_or_404(id)
     images = [f for f in record.files if f.file_type == 'image']
     documents = [f for f in record.files if f.file_type == 'document']
-    return render_template('checkup/detail.html', record=record, items=CheckupRecord.CHECKUP_ITEMS, descriptions=CheckupRecord.CHECKUP_DESCRIPTIONS, images=images, documents=documents)
+    neighbor_newer = _checkup_neighbor_newer(record)
+    neighbor_older = _checkup_neighbor_older(record)
+    return render_template(
+        'checkup/detail.html',
+        record=record,
+        items=CheckupRecord.CHECKUP_ITEMS,
+        descriptions=CheckupRecord.CHECKUP_DESCRIPTIONS,
+        images=images,
+        documents=documents,
+        neighbor_newer=neighbor_newer,
+        neighbor_older=neighbor_older,
+    )
 
 
 @bp.route('/edit/<int:id>', methods=['GET', 'POST'])
