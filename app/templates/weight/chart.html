@@ -5,10 +5,42 @@
 {% block extra_css %}
 <style>
     .chart-container { position: relative; height: 350px; }
+    .y-axis-fixed-wrapper { display: none; }
+    .chart-scroll-region { height: 100%; }
     @media (max-width: 576px) {
         .card-body { padding: 0.5rem !important; }
-        .chart-container { height: 280px !important; width: 100% !important; overflow-x: auto !important; }
-        .chart-container canvas { max-width: 150% !important; height: auto !important; }
+        .chart-container {
+            height: 280px !important;
+            width: 100% !important;
+            overflow: hidden !important;
+            display: flex;
+            align-items: stretch;
+        }
+        .y-axis-fixed-wrapper {
+            display: block;
+            position: relative;
+            flex: 0 0 44px;
+            width: 44px;
+            min-width: 44px;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            background: #fff;
+            border-right: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        .y-axis-fixed-wrapper canvas {
+            display: block;
+            width: 44px;
+            height: 100%;
+        }
+        .chart-scroll-region {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 100%;
+        }
+        .chart-container canvas { display: block; max-width: none !important; width: 100% !important; }
         .nav-tabs { font-size: 0.75rem; flex-wrap: nowrap; overflow-x: auto; }
         .nav-tabs .nav-link { padding: 6px 8px; white-space: nowrap; font-size: 0.8rem; }
         .weight-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
@@ -45,7 +77,14 @@
         <div class="card">
             <div class="card-body">
                 <div class="chart-container" style="height: 450px;">
-                    <canvas id="weightChart"></canvas>
+                    <div id="yAxisFixedWrapper" class="y-axis-fixed-wrapper">
+                        <canvas id="yAxisCanvas"></canvas>
+                    </div>
+                    <div id="chartScrollRegion" class="chart-scroll-region">
+                        <div id="chartScrollContent" style="height: 100%;">
+                            <canvas id="weightChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -68,8 +107,92 @@
 {% if data.labels and data.labels|length > 0 %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    const ctx = document.getElementById('weightChart').getContext('2d');
+    const canvas = document.getElementById('weightChart');
+    const chartScrollRegion = document.getElementById('chartScrollRegion');
+    const chartScrollContent = document.getElementById('chartScrollContent');
+    const yAxisFixedWrapper = document.getElementById('yAxisFixedWrapper');
+    const yAxisCanvas = document.getElementById('yAxisCanvas');
+    const chartContainer = canvas.closest('.chart-container');
+    const ctx = canvas.getContext('2d');
     const isMobile = window.innerWidth <= 576;
+    const chartTitle = {{ chart_title | tojson }};
+
+    function getMobilePointWidth() {
+        if (chartTitle.includes('有记录')) return 10;
+        if (chartTitle.includes('日')) return 8;
+        return 20;
+    }
+
+    function applyMobileFixedPointSpacing(pointCount) {
+        if (!isMobile || !chartScrollRegion) return;
+        const fixedPointWidth = getMobilePointWidth();
+        const minWidth = chartScrollRegion.clientWidth;
+        const chartWidth = Math.max(minWidth, pointCount * fixedPointWidth);
+        if (chartScrollContent) {
+            chartScrollContent.style.width = chartWidth + 'px';
+        }
+    }
+
+    function formatShortDateLabel(value) {
+        const raw = String(value ?? '');
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) return raw;
+        const month = parseInt(match[2], 10);
+        const day = parseInt(match[3], 10);
+        return `${month}/${day}`;
+    }
+
+    function formatWeekLabel(value) {
+        const raw = String(value ?? '').trim();
+        if (!raw) return '';
+        return raw.replace(/^孕/, '');
+    }
+
+    function getLabelStepByChart() {
+        if (chartTitle.includes('体重曲线-日')) return 7;
+        if (chartTitle.includes('有记录')) return 7;
+        return 1;
+    }
+
+    function shouldShowDenseLabel(index) {
+        const step = getLabelStepByChart();
+        return index % step === 0;
+    }
+
+    function renderFixedYAxis(chart) {
+        if (!isMobile || !yAxisFixedWrapper || !yAxisCanvas || !chart?.scales?.y) return;
+
+        const yScale = chart.scales.y;
+        const cssWidth = yAxisFixedWrapper.clientWidth || 44;
+        const cssHeight = chart.height;
+        const dpr = window.devicePixelRatio || 1;
+        const axisCtx = yAxisCanvas.getContext('2d');
+
+        yAxisCanvas.style.width = `${cssWidth}px`;
+        yAxisCanvas.style.height = `${cssHeight}px`;
+        yAxisCanvas.width = Math.max(1, Math.floor(cssWidth * dpr));
+        yAxisCanvas.height = Math.max(1, Math.floor(cssHeight * dpr));
+        axisCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        axisCtx.clearRect(0, 0, cssWidth, cssHeight);
+
+        const ticks = yScale.ticks || [];
+        axisCtx.fillStyle = '#6c757d';
+        axisCtx.font = '10px sans-serif';
+        axisCtx.textAlign = 'right';
+        axisCtx.textBaseline = 'middle';
+
+        ticks.forEach((tick) => {
+            const y = yScale.getPixelForValue(tick.value);
+            axisCtx.fillText(String(tick.label ?? tick.value), cssWidth - 5, y);
+        });
+    }
+
+    const fixedYAxisCanvasPlugin = {
+        id: 'fixedYAxisCanvas',
+        afterRender(chart) { renderFixedYAxis(chart); },
+        resize(chart) { renderFixedYAxis(chart); },
+        afterUpdate(chart) { renderFixedYAxis(chart); }
+    };
 </script>
 {% if '孕周' in chart_title %}
 <script>
@@ -77,8 +200,10 @@
     const weights = {{ data.weights | tojson }};
     const suggestedMin = {{ data.suggested_min | tojson }};
     const suggestedMax = {{ data.suggested_max | tojson }};
+    applyMobileFixedPointSpacing(labels.length);
 
     new Chart(ctx, {
+        plugins: [fixedYAxisCanvasPlugin],
         type: 'line',
         data: {
             labels: labels,
@@ -137,11 +262,26 @@
                 }
             },
             scales: {
-                y: { beginAtZero: false, title: { display: true, text: '平均体重 (kg)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                y: {
+                    beginAtZero: false,
+                    title: { display: !isMobile, text: '平均体重 (kg)' },
+                    ticks: { display: !isMobile },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
                 x: {
-                    title: { display: true, text: '孕周' },
+                    title: { display: false },
                     grid: { display: false },
-                    ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: isMobile ? 6 : 12, padding: 5 }
+                    ticks: {
+                        maxRotation: 0,
+                        minRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: isMobile ? 6 : 12,
+                        padding: 5,
+                        callback: function(value) {
+                            const label = this.getLabelForValue(value);
+                            return String(label ?? '').replace(/^孕/, '');
+                        }
+                    }
                 }
             }
         }
@@ -156,6 +296,7 @@
     const suggestedMin = {{ data.suggested_min | tojson }};
     const suggestedMax = {{ data.suggested_max | tojson }};
     const hasRecord = {{ data.get('has_record', [])|tojson }};
+    applyMobileFixedPointSpacing(labels.length);
 
     const pointColors = weights.map((w, i) => {
         if (w === null) return 'transparent';
@@ -174,6 +315,7 @@
     });
 
     new Chart(ctx, {
+        plugins: [fixedYAxisCanvasPlugin],
         type: 'line',
         data: {
             labels: labels,
@@ -183,6 +325,7 @@
                     borderColor: 'rgba(91, 181, 160, 0.6)',
                     backgroundColor: 'transparent',
                     borderWidth: 1,
+                    borderDash: [5, 5],
                     pointRadius: 0,
                     tension: 0.4,
                     fill: false,
@@ -194,6 +337,7 @@
                     borderColor: 'rgba(91, 181, 160, 0.6)',
                     backgroundColor: 'rgba(91, 181, 160, 0.15)',
                     borderWidth: 1,
+                    borderDash: [5, 5],
                     pointRadius: 0,
                     tension: 0.4,
                     fill: '-1',
@@ -236,11 +380,27 @@
                 }
             },
             scales: {
-                y: { beginAtZero: false, title: { display: true, text: '体重 (kg)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                y: {
+                    beginAtZero: false,
+                    title: { display: !isMobile, text: '体重 (kg)' },
+                    ticks: { display: !isMobile },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
                 x: {
                     title: { display: false },
                     grid: { display: false },
-                    ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 10, padding: 5 }
+                    ticks: {
+                        maxRotation: 0,
+                        minRotation: 0,
+                        autoSkip: false,
+                        padding: 5,
+                        callback: function(value, index) {
+                            if (!shouldShowDenseLabel(index)) return '';
+                            const dateLine = formatShortDateLabel(this.getLabelForValue(value));
+                            const weekLine = formatWeekLabel(weeks[index] || '');
+                            return weekLine ? [dateLine, weekLine] : dateLine;
+                        }
+                    }
                 }
             }
         }
@@ -254,6 +414,7 @@
     const weights = {{ data.weights | tojson }};
     const suggestedMin = {{ data.suggested_min | tojson }};
     const suggestedMax = {{ data.suggested_max | tojson }};
+    applyMobileFixedPointSpacing(labels.length);
 
     const pointColors = weights.map((w, i) => {
         if (w < suggestedMin[i] || w > suggestedMax[i]) {
@@ -270,6 +431,7 @@
     });
 
     new Chart(ctx, {
+        plugins: [fixedYAxisCanvasPlugin],
         type: 'line',
         data: {
             labels: labels,
@@ -330,11 +492,27 @@
                 }
             },
             scales: {
-                y: { beginAtZero: false, title: { display: true, text: '体重 (kg)' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                y: {
+                    beginAtZero: false,
+                    title: { display: !isMobile, text: '体重 (kg)' },
+                    ticks: { display: !isMobile },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
                 x: {
                     title: { display: false },
                     grid: { display: false },
-                    ticks: { maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 10, padding: 5 }
+                    ticks: {
+                        maxRotation: 0,
+                        minRotation: 0,
+                        autoSkip: false,
+                        padding: 5,
+                        callback: function(value, index) {
+                            if (!shouldShowDenseLabel(index)) return '';
+                            const dateLine = formatShortDateLabel(this.getLabelForValue(value));
+                            const weekLine = formatWeekLabel(weeks[index] || '');
+                            return weekLine ? [dateLine, weekLine] : dateLine;
+                        }
+                    }
                 }
             }
         }

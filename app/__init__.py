@@ -12,6 +12,12 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # Ensure SQLite parent directory exists before opening the database.
+    database_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    if database_uri.startswith('sqlite:///'):
+        db_path = database_uri.replace('sqlite:///', '', 1)
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
     db.init_app(app)
     moment.init_app(app)
 

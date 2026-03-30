@@ -42,7 +42,7 @@
             <div class="doc-info">
                 <div class="doc-name">{{ f.original_filename }}</div>
                 <div class="doc-meta">
-                    {{ f.record.checkup_date.strftime('%Y/%m/%d') }} {{ f.record.gestational_week }}周
+                    {{ f.record.checkup_date.strftime('%Y/%m/%d') }} {{ f.record.gestational_week }}周{{ f.record.gestational_day or 0 }}天
                 </div>
             </div>
             <i class="bi bi-arrows-fullscreen text-muted"></i>
@@ -59,7 +59,7 @@
                              alt="{{ f.original_filename }}">
                         <p class="text-white text-center mt-2 mb-0">
                             {{ f.original_filename }}
-                            <small class="d-block">{{ f.record.checkup_date.strftime('%Y年%m月%d日') }} {{ f.record.gestational_week }}周</small>
+                            <small class="d-block">{{ f.record.checkup_date.strftime('%Y年%m月%d日') }} {{ f.record.gestational_week }}周{{ f.record.gestational_day or 0 }}天</small>
                         </p>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
             <div class="doc-info">
                 <div class="doc-name">{{ f.original_filename }}</div>
                 <div class="doc-meta">
-                    {{ f.record.checkup_date.strftime('%Y/%m/%d') }} {{ f.record.gestational_week }}周
+                    {{ f.record.checkup_date.strftime('%Y/%m/%d') }} {{ f.record.gestational_week }}周{{ f.record.gestational_day or 0 }}天
                     · {{ (f.file_size / 1024)|round(1) }} KB
                 </div>
             </div>
