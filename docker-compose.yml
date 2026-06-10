@@ -6,12 +6,12 @@ services:
     container_name: pregnancy_health
     restart: unless-stopped
     ports:
-      - "5001:5002"
+      - "5003:5002"
     volumes:
       - ./data:/data
     environment:
       - FLASK_ENV=production
-      - DATABASE_PATH=/data/pregnancy.db
+      - DATABASE_PATH=sqlite:////data/pregnancy.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/"]
       interval: 30s
