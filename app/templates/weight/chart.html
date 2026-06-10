@@ -4,6 +4,15 @@
 
 {% block extra_css %}
 <style>
+    .weight-header .btn {
+        font-size: 0.85rem;
+        min-height: 48px;
+        min-width: auto;
+        padding: 6px 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
     .chart-container { position: relative; height: 350px; }
     .y-axis-fixed-wrapper { display: none; }
     .chart-scroll-region { height: 100%; }
@@ -43,7 +52,11 @@
         .chart-container canvas { display: block; max-width: none !important; width: 100% !important; }
         .nav-tabs { font-size: 0.75rem; flex-wrap: nowrap; overflow-x: auto; }
         .nav-tabs .nav-link { padding: 6px 8px; white-space: nowrap; font-size: 0.8rem; }
-        .weight-header .btn { font-size: 0.8rem; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; }
+        .weight-header .btn {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            min-height: 38px;
+        }
     }
 </style>
 {% endblock %}

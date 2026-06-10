@@ -1,0 +1,25 @@
+<div class="movement-mail-nav" role="group" aria-label="切换相邻日期">
+    {% if next_date %}
+    <a href="{{ url_for('movement.list_day_detail', record_date=next_date.isoformat()) }}"
+       class="movement-mail-nav__btn"
+       title="较新一天">
+        <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/></svg>
+    </a>
+    {% else %}
+    <span class="movement-mail-nav__btn is-disabled" title="已是最新一天" aria-disabled="true">
+        <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/></svg>
+    </span>
+    {% endif %}
+    <span class="movement-mail-nav__divider" aria-hidden="true"></span>
+    {% if prev_date %}
+    <a href="{{ url_for('movement.list_day_detail', record_date=prev_date.isoformat()) }}"
+       class="movement-mail-nav__btn"
+       title="较旧一天">
+        <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+    </a>
+    {% else %}
+    <span class="movement-mail-nav__btn is-disabled" title="已是最早一天" aria-disabled="true">
+        <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>
+    </span>
+    {% endif %}
+</div>

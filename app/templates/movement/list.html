@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}列表 - 动作记录{% endblock %}
+
+{% block extra_css %}
+{% include 'movement/_page_header_styles.html' %}
+<style>
+    .movement-day-row {
+        cursor: pointer;
+        transition: background-color 0.15s;
+    }
+    .movement-day-row:hover {
+        background-color: var(--primary-light);
+    }
+    .movement-list-badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.2em 0.5em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4 movement-page-header movement-list-toolbar">
+    <h2 class="mb-0 movement-list-toolbar__title">列表</h2>
+    <div class="module-header-actions movement-list-toolbar__actions">
+        {% include 'movement/_date_filter.html' %}
+        <a href="{{ url_for('movement.count_page') }}" class="btn btn-primary movement-toolbar-btn">计数</a>
+        <a href="{{ url_for('movement.chart_page') }}" class="btn btn-outline-info movement-toolbar-btn movement-info-btn">图表</a>
+    </div>
+</div>
+
+{% if day_summaries %}
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>开始时间</th>
+                    <th>总时长</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in day_summaries %}
+                <tr class="movement-day-row"
+                    onclick="window.location='{{ url_for('movement.list_day_detail', record_date=row.date_str) }}'">
+                    <td>{{ row.date.strftime('%Y-%m-%d') }} · {{ row.gestational_week }}周{{ row.gestational_day }}天</td>
+                    <td>
+                        {% if row.started_at %}
+                            {{ row.started_at.strftime('%H:%M:%S') }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td>{{ format_duration(row.duration_seconds) }}</td>
+                    <td>
+                        {% if row.is_qualified %}
+                            <span class="badge bg-success movement-list-badge">达标</span>
+                        {% else %}
+                            <span class="badge bg-secondary movement-list-badge">未达标</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-activity text-muted" style="font-size: 4rem;"></i>
+        <p class="text-muted mt-3 fs-5">暂无动作记录</p>
+        <a href="{{ url_for('movement.count_page') }}" class="btn btn-primary btn-lg">开始第一次计数</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const filterYear = {{ filter_year }};
+    const monthEl = document.getElementById('movementFilterMonth');
+    const dayEl = document.getElementById('movementFilterDay');
+    const btn = document.getElementById('movementFilterGo');
+    const detailBase = {{ url_for('movement.list_day_detail', record_date='PLACEHOLDER') | tojson }};
+    const defaultDay = {{ filter_day }};
+
+    function daysInMonth(year, month) {
+        return new Date(year, month, 0).getDate();
+    }
+
+    function pad(n) {
+        return String(n).padStart(2, '0');
+    }
+
+    function refreshDays() {
+        const month = parseInt(monthEl.value, 10);
+        const total = daysInMonth(filterYear, month);
+        const prevDay = parseInt(dayEl.value, 10) || defaultDay;
+        dayEl.innerHTML = '';
+        for (let d = 1; d <= total; d++) {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = String(d);
+            if (d === Math.min(prevDay, total)) opt.selected = true;
+            dayEl.appendChild(opt);
+        }
+    }
+
+    function goToDate() {
+        const dateStr = filterYear + '-' + pad(monthEl.value) + '-' + pad(dayEl.value);
+        window.location = detailBase.replace('PLACEHOLDER', dateStr);
+    }
+
+    monthEl.addEventListener('change', refreshDays);
+    btn.addEventListener('click', goToDate);
+    refreshDays();
+})();
+</script>
+{% endblock %}

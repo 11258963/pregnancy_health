@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from datetime import datetime, date, timedelta
 from app import db
 from app.models import Settings, WeightRecord, CheckupRecord
+from app.utils.movement import TARGET_KICKS, build_status_payload
 from sqlalchemy import desc
 import calendar
 
@@ -55,6 +56,9 @@ def index(year=None, month=None):
 
     # 当前月的日历数据
     today = date.today()
+
+    # 今日动作记录
+    movement_status = build_status_payload(today)
     if year and month:
         current_month = date(year, month, 1)
     else:
@@ -107,6 +111,8 @@ def index(year=None, month=None):
         due_date=due_date,
         latest_weight=latest_weight,
         recent_checkups=recent_checkups,
+        movement_status=movement_status,
+        movement_target_kicks=TARGET_KICKS,
         current_month=current_month,
         current_month_str=current_month_str,
         month_days=month_days,
@@ -158,6 +164,7 @@ def settings_page():
 
     if request.method == 'POST':
         due_date_str = request.form.get('due_date')
+        movement_reminder = request.form.get('movement_reminder_enabled') == 'on'
 
         try:
             due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
@@ -167,12 +174,23 @@ def settings_page():
 
         if settings:
             settings.due_date = due_date
+            settings.movement_reminder_enabled = movement_reminder
         else:
-            settings = Settings(due_date=due_date)
+            settings = Settings(due_date=due_date, movement_reminder_enabled=movement_reminder)
             db.session.add(settings)
 
         db.session.commit()
         flash('设置已更新', 'success')
         return redirect(url_for('index.index'))
 
-    return render_template('settings.html', settings=settings)
+    from app.utils.movement import ensure_api_token
+    api_token = ensure_api_token(settings) if settings else None
+    kick_api_url = None
+    if api_token:
+        kick_api_url = url_for('movement.api_kick', token=api_token, _external=True)
+
+    return render_template(
+        'settings.html',
+        settings=settings,
+        kick_api_url=kick_api_url,
+    )

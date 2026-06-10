@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}明细 - 动作记录{% endblock %}
+
+{% block extra_css %}
+{% include 'movement/_page_header_styles.html' %}
+<style>
+    .movement-day-detail-card .card-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    .movement-session-section + .movement-session-section {
+        border-top: 1px solid rgba(91, 181, 160, 0.2);
+    }
+    .movement-session-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 16px 8px;
+        background-color: #fafcfb;
+    }
+    .movement-session-subtitle {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-muted, #5a6e6e);
+    }
+    .movement-session-meta {
+        font-size: 0.85rem;
+        color: var(--text-muted, #5a6e6e);
+        text-align: right;
+    }
+    .movement-session-meta .badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: 0.2em 0.5em;
+    }
+    .movement-detail-table {
+        table-layout: fixed;
+        width: 100%;
+        margin-bottom: 0;
+    }
+    .movement-detail-table col.col-seq { width: 30%; }
+    .movement-detail-table col.col-time { width: 35%; }
+    .movement-detail-table col.col-gap { width: 35%; }
+    .movement-detail-table th,
+    .movement-detail-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .movement-session-empty {
+        padding: 24px 16px;
+        text-align: center;
+        color: var(--text-muted, #5a6e6e);
+        margin: 0;
+    }
+    @media (max-width: 768px) {
+        .movement-day-detail-card .card-header {
+            font-size: 1.05rem;
+        }
+        .movement-session-subtitle {
+            font-size: 0.85rem;
+        }
+        .movement-session-meta {
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 movement-page-header">
+    <h2 class="mb-0">明细</h2>
+    <div class="module-header-actions">
+        {% include 'movement/_mail_nav.html' %}
+        <a href="{{ url_for('movement.count_page') }}" class="btn btn-primary">计数</a>
+        <a href="{{ url_for('movement.chart_page') }}" class="btn btn-outline-info movement-toolbar-btn movement-info-btn">图表</a>
+    </div>
+</div>
+
+{% if has_records %}
+{% set first_detail = session_details[0] %}
+<div class="card mb-4 movement-day-detail-card">
+    <div class="card-header d-flex align-items-center flex-wrap gap-2">
+        <a href="{{ url_for('movement.list_page') }}" class="text-decoration-none text-dark me-2" aria-label="返回列表">
+            <i class="bi bi-chevron-left fs-5"></i>
+        </a>
+        <span>
+            {{ target_date.strftime('%Y年%m月%d日') }}
+            {{ first_detail.session.gestational_week }}周{{ first_detail.session.gestational_day }}天
+        </span>
+    </div>
+    <div class="card-body p-0">
+        {% for detail in session_details %}
+        <section class="movement-session-section">
+            <div class="movement-session-head{% if session_details|length == 1 %} justify-content-end{% endif %}">
+                {% if session_details|length > 1 %}
+                <span class="movement-session-subtitle">第 {{ detail.index }} 次记录</span>
+                {% endif %}
+                <span class="movement-session-meta">
+                    {% if detail.session.is_qualified %}
+                        <span class="badge bg-success">达标</span>
+                    {% elif detail.session.status == 'failed' %}
+                        <span class="badge bg-danger">超时未达标</span>
+                    {% elif detail.session.status == 'abandoned' %}
+                        <span class="badge bg-warning text-dark">已放弃</span>
+                    {% elif detail.session.status == 'in_progress' %}
+                        <span class="badge bg-primary">进行中</span>
+                    {% endif %}
+                    {% if detail.session.started_at %}
+                        <span class="ms-1">
+                            开始 {{ detail.session.started_at.strftime('%H:%M:%S') }}
+                            {% if detail.session.ended_at %}
+                                · 总时长 {{ format_duration(detail.session.duration_seconds()) }}
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </span>
+            </div>
+            {% if detail.kick_rows %}
+            <div class="table-responsive">
+                <table class="table table-hover movement-detail-table mb-0">
+                    <colgroup>
+                        <col class="col-seq">
+                        <col class="col-time">
+                        <col class="col-gap">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>次数</th>
+                            <th>时间</th>
+                            <th>间隔</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in detail.kick_rows %}
+                        <tr>
+                            <td>第 {{ row.sequence }} 次</td>
+                            <td>{{ row.kicked_at.strftime('%H:%M:%S') }}</td>
+                            <td>
+                                {% if row.interval_seconds is none %}
+                                    —
+                                {% else %}
+                                    {{ format_duration(row.interval_seconds) }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="movement-session-empty">无点击记录</p>
+            {% endif %}
+        </section>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="card mb-4 movement-day-detail-card">
+    <div class="card-header d-flex align-items-center flex-wrap gap-2">
+        <a href="{{ url_for('movement.list_page') }}" class="text-decoration-none text-dark me-2" aria-label="返回列表">
+            <i class="bi bi-chevron-left fs-5"></i>
+        </a>
+        <span>
+            {{ target_date.strftime('%Y年%m月%d日') }}
+            {{ gestational_week }}周{{ gestational_day }}天
+        </span>
+    </div>
+    <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">该日暂无动作记录</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

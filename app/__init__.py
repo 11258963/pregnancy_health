@@ -21,14 +21,16 @@ def create_app(config_class=Config):
     db.init_app(app)
     moment.init_app(app)
 
-    from app.routes import index, weight, checkup, diary
+    from app.routes import index, weight, checkup, diary, movement
     app.register_blueprint(index.bp)
     app.register_blueprint(weight.bp)
     app.register_blueprint(checkup.bp)
     app.register_blueprint(diary.bp)
+    app.register_blueprint(movement.bp)
 
     with app.app_context():
         db.create_all()
+        _migrate_settings_columns()
         # 确保上传目录存在
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
         # 加载预产期设置
@@ -38,3 +40,23 @@ def create_app(config_class=Config):
             app.config['DUE_DATE'] = settings.due_date
 
     return app
+
+
+def _migrate_settings_columns():
+    """为已有 SQLite 数据库补充 settings 新字段。"""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    if 'settings' not in inspector.get_table_names():
+        return
+    columns = {col['name'] for col in inspector.get_columns('settings')}
+    statements = []
+    if 'movement_api_token' not in columns:
+        statements.append('ALTER TABLE settings ADD COLUMN movement_api_token VARCHAR(64)')
+    if 'movement_reminder_enabled' not in columns:
+        statements.append('ALTER TABLE settings ADD COLUMN movement_reminder_enabled BOOLEAN DEFAULT 1')
+    if not statements:
+        return
+    with db.engine.begin() as conn:
+        for stmt in statements:
+            conn.execute(text(stmt))

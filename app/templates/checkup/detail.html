@@ -59,7 +59,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 page-header flex-wrap gap-2">
     <h2 class="mb-0">检查详情</h2>
-    <div class="d-flex align-items-center gap-2 ms-auto">
+    <div class="module-header-actions ms-auto">
         <div class="checkup-mail-nav" role="group" aria-label="切换相邻检查记录">
             {% if neighbor_newer %}
             <a href="{{ url_for('checkup.detail', id=neighbor_newer.id) }}"

@@ -1,0 +1,153 @@
+<style>
+    .movement-page-header h2 {
+        line-height: 1.4;
+    }
+    .movement-list-toolbar {
+        flex-wrap: nowrap;
+    }
+    .movement-list-toolbar__title {
+        flex-shrink: 0;
+    }
+    .movement-list-toolbar__actions {
+        margin-left: auto;
+        flex-shrink: 0;
+        flex-wrap: nowrap;
+    }
+    .movement-page-header .btn {
+        font-size: 0.85rem;
+        min-height: 48px;
+        min-width: auto;
+        padding: 6px 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+    }
+    .movement-page-header .movement-toolbar-btn {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 52px;
+        padding: 6px 10px;
+    }
+    .movement-page-header .movement-info-btn:hover,
+    .movement-page-header .movement-info-btn:focus {
+        color: #fff !important;
+        background-color: #0dcaf0 !important;
+        border-color: #0dcaf0 !important;
+    }
+    .movement-date-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 4px;
+        border-radius: 10px;
+        background: var(--primary-light, #e8f5f2);
+        border: 2px solid #d0e5e1;
+        flex-shrink: 0;
+    }
+    .movement-date-filter__md {
+        display: flex;
+        align-items: stretch;
+        width: 96px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(91, 181, 160, 0.35);
+        background: #fff;
+    }
+    .movement-date-filter__select {
+        font-size: 0.8rem;
+        flex: 1 1 50%;
+        width: 50%;
+        min-width: 0;
+        min-height: 48px;
+        height: 48px;
+        padding: 2px 20px 2px 6px;
+        border: none;
+        border-radius: 0;
+        background-color: #fff;
+        color: var(--text-dark, #2d3a3a);
+        box-shadow: none;
+        text-align: center;
+        text-align-last: center;
+    }
+    .movement-date-filter__month {
+        border-right: 1px solid rgba(91, 181, 160, 0.2);
+    }
+    .movement-date-filter__select:focus {
+        border-color: transparent;
+        box-shadow: inset 0 0 0 2px rgba(91, 181, 160, 0.35);
+        z-index: 1;
+    }
+    .movement-date-filter__btn {
+        font-size: 0.8rem;
+        min-height: 48px;
+        height: 48px;
+        min-width: 52px;
+        padding: 2px 8px;
+        border-radius: 8px;
+        white-space: nowrap;
+    }
+    .movement-mail-nav {
+        display: inline-flex;
+        align-items: stretch;
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--primary-light, #e8f5f2);
+        border: 1px solid rgba(91, 181, 160, 0.45);
+        box-shadow: 0 1px 2px rgba(91, 181, 160, 0.15);
+    }
+    .movement-mail-nav__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        min-height: 48px;
+        padding: 0 8px;
+        color: var(--primary-dark, #4a9a87);
+        text-decoration: none;
+        border: none;
+        background: transparent;
+        transition: background 0.15s ease;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+    .movement-mail-nav__btn:hover:not(.is-disabled) {
+        background: rgba(91, 181, 160, 0.18);
+        color: var(--primary-color, #5bb5a0);
+    }
+    .movement-mail-nav__btn.is-disabled {
+        color: rgba(90, 110, 110, 0.35);
+        pointer-events: none;
+        cursor: default;
+    }
+    .movement-mail-nav__divider {
+        width: 1px;
+        align-self: stretch;
+        background: rgba(91, 181, 160, 0.35);
+        flex-shrink: 0;
+    }
+    .movement-list-toolbar .btn {
+        flex-shrink: 0;
+    }
+    @media (max-width: 768px) {
+        .movement-list-toolbar__actions {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: calc(100% - 60px);
+        }
+        .movement-page-header .btn {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            min-height: 38px;
+        }
+        .movement-date-filter__select,
+        .movement-date-filter__btn {
+            min-height: 38px;
+            height: 38px;
+        }
+        .movement-mail-nav__btn {
+            min-width: 40px;
+            min-height: 38px;
+        }
+    }
+</style>

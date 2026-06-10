@@ -5,7 +5,7 @@
 {% block content %}
 <h2 class="mb-4">设置</h2>
 
-<div class="row">
+<div class="row g-4">
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">预产期设置</div>
@@ -16,10 +16,101 @@
                         <input type="date" name="due_date" class="form-control"
                                value="{{ settings.due_date.strftime('%Y-%m-%d') if settings and settings.due_date else '' }}" required>
                     </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="movementReminder"
+                               name="movement_reminder_enabled"
+                               {% if not settings or settings.movement_reminder_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="movementReminder">每天 19:00 动作记录提醒（需安装 PWA 并允许通知）</label>
+                    </div>
                     <button type="submit" class="btn btn-primary">保存</button>
                 </form>
             </div>
         </div>
     </div>
+
+    {% if kick_api_url %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">快捷指令 / Siri 捷径</div>
+            <div class="card-body">
+                <p class="text-muted">在 iOS「快捷指令」中创建「获取 URL 内容」动作，方法选 POST，填入下方地址。每次运行记一次胎动。</p>
+                <div class="mb-3">
+                    <label class="form-label">记一次胎动 API</label>
+                    <input type="text" class="form-control font-monospace" id="kickApiUrl"
+                           value="{{ kick_api_url }}" readonly onclick="this.select()">
+                    <div class="form-text">若复制失败，点一下地址框全选后手动复制</div>
+                </div>
+                <button type="button" class="btn btn-outline-primary" id="copyKickApiBtn">复制地址</button>
+                <span id="copyKickApiHint" class="ms-2 small d-none" role="status"></span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const input = document.getElementById('kickApiUrl');
+    const btn = document.getElementById('copyKickApiBtn');
+    const hint = document.getElementById('copyKickApiHint');
+    if (!input || !btn) return;
+
+    let hintTimer = null;
+
+    function showHint(message, ok) {
+        hint.textContent = message;
+        hint.className = 'ms-2 small ' + (ok ? 'text-success' : 'text-warning');
+        hint.classList.remove('d-none');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(function() { hint.classList.add('d-none'); }, 3500);
+    }
+
+    function fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, text.length);
+        let ok = false;
+        try {
+            ok = document.execCommand('copy');
+        } catch (e) {}
+        document.body.removeChild(textarea);
+        return ok;
+    }
+
+    function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text).then(function() { return true; }).catch(function() {
+                return fallbackCopy(text);
+            });
+        }
+        return Promise.resolve(fallbackCopy(text));
+    }
+
+    btn.addEventListener('click', function() {
+        const text = input.value;
+        if (!text) {
+            showHint('地址为空，请先保存设置', false);
+            return;
+        }
+        copyText(text).then(function(ok) {
+            if (ok) {
+                showHint('已复制到剪贴板', true);
+            } else {
+                input.removeAttribute('readonly');
+                input.focus();
+                input.select();
+                showHint('自动复制失败，请手动复制上方地址', false);
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

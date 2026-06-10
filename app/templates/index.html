@@ -2,6 +2,23 @@
 
 {% block title %}首页 - 人生副本{% endblock %}
 
+{% block extra_css %}
+<style>
+    .home-view-btn {
+        color: #5bb5a0;
+        border-color: #5bb5a0;
+        background-color: transparent;
+        font-size: 0.8rem;
+    }
+    .btn.home-view-btn:hover,
+    .btn.home-view-btn:focus {
+        color: #fff !important;
+        background-color: #5bb5a0 !important;
+        border-color: #5bb5a0 !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>{{ gestational_week }}周{{ gestational_day }}天</h2>
@@ -101,7 +118,45 @@
                 {% endif %}
                 <div class="d-flex gap-2">
                     <a href="{{ url_for('weight.add') }}" class="btn btn-primary btn-sm flex-fill" style="font-size: 0.8rem;">新增</a>
-                    <a href="{{ url_for('weight.chart') }}" class="btn btn-outline-primary btn-sm flex-fill" style="color: #5bb5a0; border-color: #5bb5a0; font-size: 0.8rem;">查看</a>
+                    <a href="{{ url_for('weight.chart') }}" class="btn btn-outline-primary btn-sm flex-fill home-view-btn">查看</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 动作记录 -->
+    <div class="col-md-3">
+        <div class="card stat-card h-100" id="movementCard">
+            <div class="card-body text-center py-3">
+                <i class="bi bi-activity text-info" style="font-size: 2rem; color: #5bb5a0 !important;"></i>
+                <h6 class="card-title mt-1 mb-2">动作记录</h6>
+                <h4 class="mb-1" id="movementCount">
+                    {% if movement_status.session %}
+                        {{ movement_status.session.kick_count }}/{{ movement_target_kicks }}
+                    {% else %}
+                        0/{{ movement_target_kicks }}
+                    {% endif %}
+                </h4>
+                <p class="text-muted small mb-1" id="movementHint">
+                    {% if movement_status.qualified_today %}
+                        今日已达标
+                    {% elif movement_status.session and movement_status.session.status == 'in_progress' %}
+                        计数进行中
+                    {% elif movement_status.session %}
+                        今日未达标
+                    {% else %}
+                        今日未记录
+                    {% endif %}
+                </p>
+                <div class="d-flex gap-2">
+                    {% if movement_status.qualified_today %}
+                        <a href="{{ url_for('movement.count_page') }}" class="btn btn-success btn-sm flex-fill movement-action-btn" style="font-size: 0.8rem;" data-action="view">完成</a>
+                    {% elif movement_status.session and movement_status.session.status == 'in_progress' %}
+                        <button type="button" class="btn btn-primary btn-sm flex-fill movement-action-btn" style="font-size: 0.8rem;" data-action="kick">继续</button>
+                    {% else %}
+                        <button type="button" class="btn btn-primary btn-sm flex-fill movement-action-btn" style="font-size: 0.8rem;" data-action="kick">开始</button>
+                    {% endif %}
+                    <a href="{{ url_for('movement.count_page') }}" class="btn btn-outline-primary btn-sm flex-fill home-view-btn">查看</a>
                 </div>
             </div>
         </div>
@@ -129,4 +184,103 @@
 
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const TARGET_KICKS = {{ movement_target_kicks }};
+    const countPageUrl = {{ url_for('movement.count_page') | tojson }};
+    const kickApiUrl = {{ url_for('movement.api_kick') | tojson }};
+    const card = document.getElementById('movementCard');
+    if (!card) return;
+    let kickInFlight = false;
+
+    function applyMovementState(data) {
+        const session = data.session;
+        const countEl = document.getElementById('movementCount');
+        const hintEl = document.getElementById('movementHint');
+
+        const kickCount = session ? session.kick_count : 0;
+        countEl.textContent = kickCount + '/' + TARGET_KICKS;
+        countEl.className = 'mb-1';
+
+        if (data.qualified_today) {
+            countEl.classList.add('text-success');
+            hintEl.textContent = '今日已达标';
+            replaceActionButton('完成', 'btn-success', 'view');
+        } else if (session && session.status === 'in_progress') {
+            countEl.classList.add('text-primary');
+            hintEl.textContent = '计数进行中';
+            replaceActionButton('继续', 'btn-primary', 'kick');
+        } else if (session) {
+            countEl.classList.add('text-warning');
+            hintEl.textContent = '今日未达标';
+            replaceActionButton('开始', 'btn-primary', 'kick');
+        } else {
+            countEl.classList.add('text-muted');
+            hintEl.textContent = '今日未记录';
+            replaceActionButton('开始', 'btn-primary', 'kick');
+        }
+    }
+
+    function replaceActionButton(label, btnClass, action) {
+        const oldBtn = card.querySelector('.movement-action-btn');
+        if (!oldBtn) return;
+
+        if (action === 'view') {
+            const a = document.createElement('a');
+            a.href = countPageUrl;
+            a.className = 'btn btn-sm flex-fill movement-action-btn ' + btnClass;
+            a.style.fontSize = '0.8rem';
+            a.dataset.action = 'view';
+            a.textContent = label;
+            oldBtn.replaceWith(a);
+            return;
+        }
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm flex-fill movement-action-btn ' + btnClass;
+        btn.style.fontSize = '0.8rem';
+        btn.dataset.action = 'kick';
+        btn.textContent = label;
+        oldBtn.replaceWith(btn);
+    }
+
+    card.addEventListener('click', async function(e) {
+        const btn = e.target.closest('.movement-action-btn');
+        if (!btn) return;
+
+        if (btn.dataset.action === 'view') {
+            return;
+        }
+
+        e.preventDefault();
+        if (kickInFlight) return;
+        kickInFlight = true;
+        if (navigator.vibrate) navigator.vibrate(50);
+
+        btn.disabled = true;
+        try {
+            const resp = await fetch(kickApiUrl, {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                if (data.session) applyMovementState({ ...data, qualified_today: data.session.is_qualified });
+                return;
+            }
+            applyMovementState(data);
+        } finally {
+            kickInFlight = false;
+            const current = card.querySelector('.movement-action-btn');
+            if (current && current.dataset.action === 'kick') {
+                current.disabled = false;
+            }
+        }
+    });
+})();
+</script>
 {% endblock %}

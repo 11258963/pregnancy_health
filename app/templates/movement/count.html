@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+
+{% block title %}动作记录 - 人生副本{% endblock %}
+
+{% block extra_css %}
+{% include 'movement/_page_header_styles.html' %}
+<style>
+    .kick-btn {
+        width: min(280px, 80vw);
+        height: min(280px, 80vw);
+        border-radius: 50%;
+        font-size: 2rem;
+        font-weight: 700;
+        border: none;
+        background: linear-gradient(145deg, #5bb5a0, #4a9a87);
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(91, 181, 160, 0.45);
+        transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .kick-btn:active:not(:disabled) {
+        transform: scale(0.96);
+        box-shadow: 0 4px 12px rgba(91, 181, 160, 0.35);
+    }
+    .kick-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+    .kick-count {
+        font-size: 4rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        line-height: 1;
+    }
+    .timer-ring {
+        font-size: 1.4rem;
+        font-variant-numeric: tabular-nums;
+    }
+    .status-banner {
+        border-radius: 12px;
+        padding: 16px 20px;
+    }
+    .kick-table-wrap { max-height: 320px; overflow-y: auto; }
+    @media (max-width: 768px) {
+        .kick-count { font-size: 3rem; }
+        .kick-btn { font-size: 1.5rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 movement-page-header">
+    <h2 class="mb-0">动作记录</h2>
+    <div class="module-header-actions">
+        <a href="{{ url_for('movement.chart_page') }}" class="btn btn-outline-info movement-toolbar-btn movement-info-btn">图表</a>
+        <a href="{{ url_for('movement.list_page') }}" class="btn btn-outline-secondary movement-toolbar-btn">列表</a>
+    </div>
+</div>
+
+<div id="alertBox" class="d-none alert mb-3" role="alert"></div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-body text-center py-4">
+                <p class="text-muted mb-1">今日胎动</p>
+                <div class="kick-count mb-2"><span id="kickCount">0</span><span class="fs-3 text-muted"> / {{ target_kicks }}</span></div>
+                <div class="timer-ring text-muted mb-3" id="timerDisplay">首动起算 2 小时内数满 {{ target_kicks }} 次</div>
+
+                <div class="d-flex justify-content-center mb-4">
+                    <button type="button" class="kick-btn" id="kickBtn" aria-label="记录一次胎动">
+                        <i class="bi bi-plus-lg d-block mb-2" style="font-size:2.5rem;"></i>
+                        记一次
+                    </button>
+                </div>
+
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-warning" id="undoBtn" disabled>
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>撤销
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" id="abandonBtn" disabled>
+                        <i class="bi bi-x-circle me-1"></i>放弃本次
+                    </button>
+                    <button type="button" class="btn btn-primary d-none" id="restartBtn">
+                        <i class="bi bi-arrow-repeat me-1"></i>重新开始
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="statusBanner" class="status-banner mt-3 d-none"></div>
+    </div>
+
+    <div class="modal fade" id="abandonConfirmModal" tabindex="-1" aria-labelledby="abandonConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body py-4 text-center">
+                    <p class="mb-0" id="abandonConfirmLabel">确定放弃本次计数？</p>
+                </div>
+                <div class="modal-footer justify-content-center border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="abandonConfirmBtn">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header">本次记录</div>
+            <div class="card-body p-0">
+                <div class="kick-table-wrap">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>次数</th>
+                                <th>时间</th>
+                                <th>间隔</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kickTableBody">
+                            <tr id="emptyRow">
+                                <td colspan="3" class="text-muted py-4">点击「记一次」开始今日计数</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const TARGET_KICKS = {{ target_kicks }};
+const SESSION_LIMIT_MS = 2 * 60 * 60 * 1000;
+
+let currentSession = null;
+let timerInterval = null;
+let kickInFlight = false;
+
+function vibrate() {
+    if (navigator.vibrate) navigator.vibrate(50);
+}
+
+function showAlert(message, type = 'warning') {
+    const box = document.getElementById('alertBox');
+    box.className = `alert alert-${type} mb-3`;
+    box.textContent = message;
+    box.classList.remove('d-none');
+}
+
+function hideAlert() {
+    document.getElementById('alertBox').classList.add('d-none');
+}
+
+function formatTime(iso) {
+    if (!iso) return '--:--:--';
+    const d = new Date(iso);
+    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+
+function formatDuration(seconds) {
+    if (seconds == null || seconds < 0) return '—';
+    seconds = Math.floor(seconds);
+    if (seconds < 60) return `${seconds}秒`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (secs === 0) return `${mins}分`;
+    return `${mins}分${secs}秒`;
+}
+
+function getDeadlineMs(session) {
+    if (!session || !session.started_at) return null;
+    if (session.deadline_at) return new Date(session.deadline_at).getTime();
+    return new Date(session.started_at).getTime() + SESSION_LIMIT_MS;
+}
+
+function updateTimer() {
+    const el = document.getElementById('timerDisplay');
+    if (!currentSession || !currentSession.started_at) {
+        el.textContent = '首动起算 2 小时内数满 ' + TARGET_KICKS + ' 次';
+        return;
+    }
+    if (currentSession.status === 'completed' && currentSession.is_qualified) {
+        const mins = Math.floor((currentSession.duration_seconds || 0) / 60);
+        const secs = (currentSession.duration_seconds || 0) % 60;
+        el.textContent = `达标！用时 ${mins} 分 ${secs} 秒`;
+        return;
+    }
+    if (currentSession.status === 'failed') {
+        el.textContent = '未达标：2 小时内未满 ' + TARGET_KICKS + ' 次';
+        return;
+    }
+    if (currentSession.status === 'abandoned') {
+        el.textContent = '首动起算 2 小时内数满 ' + TARGET_KICKS + ' 次';
+        return;
+    }
+    if (currentSession.status !== 'in_progress') {
+        el.textContent = '首动起算 2 小时内数满 ' + TARGET_KICKS + ' 次';
+        return;
+    }
+    const deadline = getDeadlineMs(currentSession);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+        el.textContent = '时间已到，请刷新或重新开始';
+        return;
+    }
+    const h = Math.floor(remaining / 3600000);
+    const m = Math.floor((remaining % 3600000) / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    el.textContent = `剩余 ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function renderKickTable(kicks) {
+    const tbody = document.getElementById('kickTableBody');
+    tbody.innerHTML = '';
+    if (!kicks || kicks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-muted py-4">点击「记一次」开始今日计数</td></tr>';
+        return;
+    }
+    let prevTime = null;
+    kicks.forEach(k => {
+        const kickedAt = new Date(k.kicked_at);
+        let intervalText = '—';
+        if (prevTime !== null) {
+            intervalText = formatDuration((kickedAt - prevTime) / 1000);
+        }
+        prevTime = kickedAt;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>第 ${k.sequence} 次</td><td>${formatTime(k.kicked_at)}</td><td>${intervalText}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function updateUI(data) {
+    currentSession = data.session;
+    const qualified = data.qualified_today;
+    const canStart = data.can_start;
+    const canRestart = data.can_restart;
+
+    const kickBtn = document.getElementById('kickBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const abandonBtn = document.getElementById('abandonBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const banner = document.getElementById('statusBanner');
+
+    hideAlert();
+    banner.className = 'status-banner mt-3 d-none';
+
+    if (qualified && currentSession) {
+        document.getElementById('kickCount').textContent = currentSession.kick_count;
+        renderKickTable(currentSession.kicks || []);
+        kickBtn.disabled = true;
+        undoBtn.disabled = true;
+        abandonBtn.disabled = true;
+        restartBtn.classList.add('d-none');
+        banner.className = 'status-banner mt-3 alert alert-success';
+        banner.textContent = '今日已达标完成，明天再继续哦';
+        banner.classList.remove('d-none');
+        updateTimer();
+        return;
+    }
+
+    if (currentSession && currentSession.status === 'in_progress') {
+        document.getElementById('kickCount').textContent = currentSession.kick_count;
+        renderKickTable(currentSession.kicks || []);
+        kickBtn.disabled = false;
+        undoBtn.disabled = currentSession.kick_count === 0;
+        abandonBtn.disabled = false;
+        restartBtn.classList.add('d-none');
+        updateTimer();
+        return;
+    }
+
+    if (currentSession && currentSession.status === 'failed' && canStart) {
+        document.getElementById('kickCount').textContent = currentSession.kick_count;
+        renderKickTable(currentSession.kicks || []);
+        kickBtn.disabled = false;
+        undoBtn.disabled = true;
+        abandonBtn.disabled = true;
+        restartBtn.classList.remove('d-none');
+        banner.className = 'status-banner mt-3 alert alert-warning';
+        banner.textContent = '本次未达标，可重新开始今日计数';
+        banner.classList.remove('d-none');
+        updateTimer();
+        return;
+    }
+
+    document.getElementById('kickCount').textContent = '0';
+    renderKickTable([]);
+    kickBtn.disabled = !canStart;
+    undoBtn.disabled = true;
+    abandonBtn.disabled = true;
+    restartBtn.classList.add('d-none');
+    updateTimer();
+}
+
+async function fetchStatus() {
+    const resp = await fetch('{{ url_for("movement.api_status") }}');
+    const data = await resp.json();
+    if (currentSession && currentSession.status === 'in_progress' && currentSession.started_at) {
+        const deadline = getDeadlineMs(currentSession);
+        if (deadline && Date.now() > deadline && currentSession.kick_count < TARGET_KICKS) {
+            await fetch('{{ url_for("movement.api_status") }}');
+        }
+    }
+    updateUI(data);
+}
+
+async function postAction(url) {
+    const resp = await fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' } });
+    const data = await resp.json();
+    if (!resp.ok) {
+        showAlert(data.error === 'already_qualified_today' ? '今日已达标完成' : '操作失败，请重试', 'danger');
+        if (data.session) updateUI({ ...data, qualified_today: data.session.is_qualified, can_start: false, can_restart: false });
+        return;
+    }
+    updateUI(data);
+}
+
+document.getElementById('kickBtn').addEventListener('click', async () => {
+    if (kickInFlight) return;
+    kickInFlight = true;
+    const kickBtn = document.getElementById('kickBtn');
+    kickBtn.disabled = true;
+    try {
+        vibrate();
+        await postAction('{{ url_for("movement.api_kick") }}');
+    } finally {
+        kickInFlight = false;
+    }
+});
+
+document.getElementById('undoBtn').addEventListener('click', async () => {
+    await postAction('{{ url_for("movement.api_undo") }}');
+});
+
+const abandonConfirmModal = new bootstrap.Modal(document.getElementById('abandonConfirmModal'));
+document.getElementById('abandonBtn').addEventListener('click', () => {
+    abandonConfirmModal.show();
+});
+document.getElementById('abandonConfirmBtn').addEventListener('click', async () => {
+    abandonConfirmModal.hide();
+    await postAction('{{ url_for("movement.api_abandon") }}');
+});
+
+document.getElementById('restartBtn').addEventListener('click', async () => {
+    hideAlert();
+    currentSession = null;
+    updateUI({ qualified_today: false, can_start: true, can_restart: true, session: null });
+    document.getElementById('kickBtn').disabled = false;
+    document.getElementById('restartBtn').classList.add('d-none');
+    document.getElementById('statusBanner').classList.add('d-none');
+});
+
+timerInterval = setInterval(() => {
+    if (!currentSession || currentSession.status !== 'in_progress' || !currentSession.started_at) {
+        return;
+    }
+    const deadline = getDeadlineMs(currentSession);
+    if (deadline && Date.now() > deadline && currentSession.kick_count < TARGET_KICKS) {
+        fetchStatus();
+        return;
+    }
+    updateTimer();
+}, 1000);
+
+fetchStatus();
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) fetchStatus();
+});
+
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+}
+</script>
+{% endblock %}

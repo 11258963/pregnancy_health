@@ -61,6 +61,58 @@
         </div>
     </div>
 
+    <!-- 动作记录卡片 -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-activity me-2"></i>动作记录</span>
+                {% if movement_sessions %}
+                    <a href="{{ url_for('movement.list_page') }}" class="btn btn-sm btn-outline-primary">详情</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if movement_sessions %}
+                    <div class="p-3" style="background-color: {% if movement_qualified %}#e8f5f2{% else %}#fff3e0{% endif %}; border-radius: 12px;">
+                        {% if movement_qualified %}
+                            <h4 class="text-success mb-3">今日已达标</h4>
+                        {% else %}
+                            <h4 class="text-warning mb-3">今日未达标</h4>
+                        {% endif %}
+                        {% for session in movement_sessions %}
+                        <div class="mb-3 {% if not loop.last %}pb-3 border-bottom{% endif %}">
+                            <p class="mb-1">
+                                <strong>第 {{ loop.index }} 次</strong>
+                                {% if session.is_qualified %}
+                                    <span class="badge bg-success ms-1">达标</span>
+                                {% elif session.status == 'failed' %}
+                                    <span class="badge bg-danger ms-1">超时</span>
+                                {% elif session.status == 'abandoned' %}
+                                    <span class="badge bg-warning text-dark ms-1">已放弃</span>
+                                {% endif %}
+                                <span class="text-muted ms-2">{{ session.kick_count }} 次</span>
+                            </p>
+                            {% if session.started_at %}
+                            <small class="text-muted">
+                                {{ session.started_at.strftime('%H:%M:%S') }}
+                                {% if session.ended_at %} → {{ session.ended_at.strftime('%H:%M:%S') }}{% endif %}
+                            </small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-dash-circle text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3">暂无动作记录</p>
+                        <a href="{{ url_for('movement.count_page') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-lg me-2"></i>去计数
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- 检查记录卡片 -->
     <div class="col-md-6">
         <div class="card h-100">
@@ -110,7 +162,7 @@
 
 </div>
 
-{% if not weight and not checkup %}
+{% if not weight and not checkup and not movement_sessions %}
     <div class="card mt-4">
         <div class="card-body text-center py-5">
             <i class="bi bi-journal-plus text-muted" style="font-size: 4rem;"></i>
@@ -121,6 +173,9 @@
                 </a>
                 <a href="{{ url_for('checkup.add') }}?date={{ target_date.isoformat() }}" class="btn btn-success btn-lg">
                     <i class="bi bi-plus-lg me-2"></i>添加检查
+                </a>
+                <a href="{{ url_for('movement.count_page') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="bi bi-activity me-2"></i>动作记录
                 </a>
             </div>
         </div>

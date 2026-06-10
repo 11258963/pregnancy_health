@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#5bb5a0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <title>{% block title %}人生副本{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -14,6 +19,8 @@
             --secondary-color: #7eb8c9;
             --text-dark: #2d3a3a;
             --text-muted: #5a6e6e;
+            --bs-success: #5bb5a0;
+            --bs-success-rgb: 91, 181, 160;
         }
 
         body {
@@ -101,6 +108,39 @@
             border-color: var(--primary-dark);
         }
 
+        .btn-success {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-success:hover,
+        .btn-success:focus {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        .btn-outline-success {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-success:hover,
+        .btn-outline-success:focus {
+            color: #fff;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .text-success { color: var(--primary-color) !important; }
+        .bg-success { background-color: var(--primary-color) !important; }
+        .border-success { border-color: var(--primary-color) !important; }
+
+        .alert-success {
+            background-color: var(--primary-light);
+            border-color: var(--primary-color);
+            color: var(--text-dark);
+        }
+
         .btn-lg {
             font-size: 1.2rem;
             min-height: 56px;
@@ -186,6 +226,16 @@
         .display-2 { font-size: 4rem; }
         .display-3 { font-size: 3rem; }
 
+        .weight-header,
+        .checkup-header,
+        .files-header,
+        .module-header-actions {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
         @media (max-width: 768px) {
             body { font-size: 16px; }
             .sidebar { min-height: auto; }
@@ -249,6 +299,7 @@
                 <ul class="nav flex-column">
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('index.index') }}"><i class="bi bi-house me-2"></i>首页</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('weight.chart') }}"><i class="bi bi-graph-up me-2"></i>体重记录</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('movement.count_page') }}"><i class="bi bi-activity me-2"></i>动作记录</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('checkup.list') }}"><i class="bi bi-clipboard2-pulse me-2"></i>检查记录</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('diary.index') }}"><i class="bi bi-journal-text me-2"></i>健康日记</a></li>
                 </ul>
@@ -291,6 +342,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {% if request.endpoint and 'movement' in request.endpoint %}active{% endif %}" href="{{ url_for('movement.count_page') }}">
+                    <i class="bi bi-activity"></i>
+                    动作
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {% if request.endpoint and 'checkup' in request.endpoint %}active{% endif %}" href="{{ url_for('checkup.list') }}">
                     <i class="bi bi-clipboard2-pulse"></i>
                     检查
@@ -326,5 +383,12 @@
     });
     </script>
     {% block extra_js %}{% endblock %}
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('{{ url_for("static", filename="sw.js") }}').catch(function() {});
+        });
+    }
+    </script>
 </body>
 </html>

@@ -8,6 +8,8 @@ class Settings(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     due_date = db.Column(db.Date, nullable=False)
+    movement_api_token = db.Column(db.String(64))
+    movement_reminder_enabled = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -220,6 +222,87 @@ class CheckupFile(db.Model):
             'mime_type': self.mime_type,
             'file_size': self.file_size,
             'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class MovementSession(db.Model):
+    """胎动计数会话（每天可多次尝试，仅一条达标记录）"""
+    __tablename__ = 'movement_sessions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_date = db.Column(db.Date, nullable=False, index=True)
+    gestational_week = db.Column(db.Integer, nullable=False)
+    gestational_day = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(20), nullable=False, default='in_progress')
+    is_qualified = db.Column(db.Boolean, default=False)
+    started_at = db.Column(db.DateTime)
+    ended_at = db.Column(db.DateTime)
+    kick_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    kicks = db.relationship(
+        'MovementKick',
+        backref='session',
+        lazy='dynamic',
+        cascade='all, delete-orphan',
+        order_by='MovementKick.sequence'
+    )
+
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_COMPLETED = 'completed'
+    STATUS_FAILED = 'failed'
+    STATUS_ABANDONED = 'abandoned'
+
+    def deadline_at(self):
+        if not self.started_at:
+            return None
+        from datetime import timedelta
+        return self.started_at + timedelta(seconds=7200)
+
+    def duration_seconds(self):
+        if not self.started_at:
+            return None
+        end = self.ended_at or datetime.now()
+        return int((end - self.started_at).total_seconds())
+
+    def to_dict(self):
+        kicks = self.kicks.order_by('sequence').all()
+        return {
+            'id': self.id,
+            'session_date': self.session_date.isoformat(),
+            'gestational_week': self.gestational_week,
+            'gestational_day': self.gestational_day,
+            'status': self.status,
+            'is_qualified': self.is_qualified,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'ended_at': self.ended_at.isoformat() if self.ended_at else None,
+            'kick_count': self.kick_count,
+            'deadline_at': self.deadline_at().isoformat() if self.deadline_at() else None,
+            'duration_seconds': self.duration_seconds(),
+            'kicks': [k.to_dict() for k in kicks],
+        }
+
+
+class MovementKick(db.Model):
+    """单次胎动点击"""
+    __tablename__ = 'movement_kicks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(
+        db.Integer,
+        db.ForeignKey('movement_sessions.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    kicked_at = db.Column(db.DateTime, nullable=False)
+    sequence = db.Column(db.Integer, nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'kicked_at': self.kicked_at.isoformat(),
+            'sequence': self.sequence,
         }
 
 

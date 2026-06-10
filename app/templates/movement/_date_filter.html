@@ -1,0 +1,12 @@
+<div class="movement-date-filter" role="group" aria-label="按日期筛选">
+    <div class="movement-date-filter__md">
+        <select id="movementFilterMonth" class="form-select movement-date-filter__select movement-date-filter__month" aria-label="月">
+            {% for m in range(1, 13) %}
+            <option value="{{ m }}" {% if m == filter_month %}selected{% endif %}>{{ m }}月</option>
+            {% endfor %}
+        </select>
+        <select id="movementFilterDay" class="form-select movement-date-filter__select movement-date-filter__day" aria-label="日">
+        </select>
+    </div>
+    <button type="button" class="btn btn-outline-info movement-date-filter__btn movement-info-btn" id="movementFilterGo">查看</button>
+</div>

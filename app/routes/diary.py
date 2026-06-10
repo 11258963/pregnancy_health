@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from datetime import datetime, date, timedelta
 from app import db
-from app.models import WeightRecord, CheckupRecord
+from app.models import WeightRecord, CheckupRecord, MovementSession
+from app.utils.movement import finalize_timeout
 from sqlalchemy import desc, or_
 
 bp = Blueprint('diary', __name__, url_prefix='/diary')
@@ -109,11 +110,19 @@ def date_detail(record_date):
 
     weight = WeightRecord.query.filter_by(record_date=target_date).first()
     checkup = CheckupRecord.query.filter_by(checkup_date=target_date).first()
+    movement_sessions = MovementSession.query.filter_by(
+        session_date=target_date
+    ).order_by(MovementSession.created_at).all()
+    for session in movement_sessions:
+        finalize_timeout(session)
+    movement_qualified = any(s.is_qualified for s in movement_sessions)
 
     return render_template(
         'diary/date_detail.html',
         target_date=target_date,
         weight=weight,
         checkup=checkup,
+        movement_sessions=movement_sessions,
+        movement_qualified=movement_qualified,
         today=date.today()
     )
