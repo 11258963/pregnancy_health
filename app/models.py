@@ -306,6 +306,25 @@ class MovementKick(db.Model):
         }
 
 
+class UltrasoundRecord(db.Model):
+    """超声检查记录（更多记录）"""
+    __tablename__ = 'ultrasound_records'
+
+    id = db.Column(db.Integer, primary_key=True)
+    record_date = db.Column(db.Date, nullable=False, index=True)
+    gestational_week = db.Column(db.Integer, nullable=False)
+    gestational_day = db.Column(db.Integer, default=0)
+    bpd = db.Column(db.Float)
+    hr = db.Column(db.Integer)
+    hc = db.Column(db.Float)
+    ac = db.Column(db.Float)
+    fl = db.Column(db.Float)
+    estimated_weight = db.Column(db.Float)
+    estimated_gestational_age = db.Column(db.String(32))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class FetalRecord(db.Model):
     """胎心胎动记录"""
     __tablename__ = 'fetal_records'

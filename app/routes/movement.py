@@ -1,9 +1,9 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, session, url_for
 
 from app import db
-from app.models import MovementSession, Settings
+from app.models import MovementSession, Settings, UltrasoundRecord
 from app.utils.movement import (
     TARGET_KICKS,
     SESSION_LIMIT_SECONDS,
@@ -27,6 +27,79 @@ from app.utils.movement import (
 )
 
 bp = Blueprint('movement', __name__, url_prefix='/movement')
+
+
+def _optional_float(value):
+    if value is None or str(value).strip() == '':
+        return None
+    return float(value)
+
+
+def _optional_int(value):
+    if value is None or str(value).strip() == '':
+        return None
+    return int(float(value))
+
+
+def _parse_flexible_record_date(value):
+    import re
+
+    raw = (value or '').strip()
+    if not raw:
+        raise ValueError('请填写日期')
+
+    normalized = raw.replace('/', '-').replace('.', '-')
+
+    if re.fullmatch(r'\d{4}-\d{1,2}-\d{1,2}', normalized):
+        year, month, day = normalized.split('-')
+        return date(int(year), int(month), int(day))
+
+    digits = re.sub(r'\D', '', raw)
+    if re.fullmatch(r'\d{8}', digits):
+        return date(int(digits[:4]), int(digits[4:6]), int(digits[6:8]))
+
+    if re.fullmatch(r'\d{1,2}-\d{1,2}', normalized):
+        month, day = normalized.split('-')
+        return date(date.today().year, int(month), int(day))
+
+    if re.fullmatch(r'\d{4}', raw):
+        return date(date.today().year, int(raw[:2]), int(raw[2:]))
+
+    raise ValueError('日期格式不正确，可用 2026-6-10、20260610 或 0610')
+
+
+def _populate_ultrasound_from_form(record):
+    record_date_str = request.form.get('record_date')
+    record.record_date = _parse_flexible_record_date(record_date_str)
+    if record.record_date > date.today():
+        raise ValueError('日期不能晚于今天')
+    gestational_week, gestational_day = get_gestational_week_for_date(record.record_date)
+    if gestational_week is None:
+        raise ValueError('请先在设置中配置预产期')
+    record.gestational_week = gestational_week
+    record.gestational_day = gestational_day or 0
+    record.bpd = _optional_float(request.form.get('bpd'))
+    record.hr = _optional_int(request.form.get('hr'))
+    record.hc = _optional_float(request.form.get('hc'))
+    record.ac = _optional_float(request.form.get('ac'))
+    record.fl = _optional_float(request.form.get('fl'))
+    record.estimated_weight = _optional_float(request.form.get('estimated_weight'))
+    age = (request.form.get('estimated_gestational_age') or '').strip()
+    record.estimated_gestational_age = age or None
+    return record
+
+
+def _build_extras_chart_data(records):
+    ordered = sorted(records, key=lambda r: (r.record_date, r.id))
+    return {
+        'labels': [r.record_date.strftime('%m-%d') for r in ordered],
+        'weeks': [f'{r.gestational_week}周{r.gestational_day}天' for r in ordered],
+        'bpd': [r.bpd for r in ordered],
+        'hc': [r.hc for r in ordered],
+        'ac': [r.ac for r in ordered],
+        'fl': [r.fl for r in ordered],
+        'weight': [r.estimated_weight for r in ordered],
+    }
 
 
 def _require_api_auth():
@@ -116,87 +189,67 @@ def list_day_detail(record_date):
     )
 
 
-@bp.route('/chart')
-def chart_page():
-    sessions = MovementSession.query.filter(
-        MovementSession.started_at.isnot(None),
-    ).order_by(MovementSession.session_date).all()
+@bp.route('/extras', methods=['GET', 'POST'])
+def more_records_page():
+    if request.method == 'POST':
+        record = UltrasoundRecord()
+        try:
+            _populate_ultrasound_from_form(record)
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return redirect(url_for('movement.more_records_page'))
 
-    for session in sessions:
-        finalize_timeout(session)
+        db.session.add(record)
+        db.session.commit()
+        flash('记录已保存', 'success')
+        return redirect(url_for('movement.more_records_page'))
 
-    duration_labels = []
-    duration_values = []
-    duration_colors = []
-    duration_meta = []
+    sort = request.args.get('sort')
+    if sort in ('asc', 'desc'):
+        session['movement_extras_sort'] = sort
+    else:
+        sort = session.get('movement_extras_sort', 'asc')
 
-    for session in sessions:
-        if session.duration_seconds() is None:
-            continue
-        label = session.session_date.strftime('%m/%d')
-        if session.status != MovementSession.STATUS_COMPLETED or not session.is_qualified:
-            attempt_index = MovementSession.query.filter(
-                MovementSession.session_date == session.session_date,
-                MovementSession.id <= session.id,
-            ).count()
-            if attempt_index > 1:
-                label += f' #{attempt_index}'
-        duration_labels.append(label)
-        duration_values.append(round(session.duration_seconds() / 60, 1))
-        duration_colors.append('#5bb5a0' if session.is_qualified else '#e57373')
-        duration_meta.append({
-            'start': session.started_at.strftime('%H:%M') if session.started_at else '',
-            'end': session.ended_at.strftime('%H:%M') if session.ended_at else '',
-            'qualified': session.is_qualified,
-            'count': session.kick_count,
-        })
-
-    calendar_days = []
-    start_day = date.today() - timedelta(days=29)
-    for i in range(30):
-        day = start_day + timedelta(days=i)
-        day_sessions = MovementSession.query.filter_by(session_date=day).all()
-        qualified = any(s.is_qualified for s in day_sessions)
-        has_failed = any(
-            s.status in (MovementSession.STATUS_FAILED, MovementSession.STATUS_ABANDONED)
-            for s in day_sessions
-        )
-        has_in_progress = any(s.status == MovementSession.STATUS_IN_PROGRESS for s in day_sessions)
-        if qualified:
-            state = 'qualified'
-        elif has_failed or has_in_progress:
-            state = 'unqualified'
-        else:
-            state = 'none'
-        calendar_days.append({
-            'date': day.isoformat(),
-            'label': day.strftime('%d'),
-            'state': state,
-        })
-
-    week_map = {}
-    for session in sessions:
-        if not session.is_qualified:
-            continue
-        key = session.gestational_week
-        week_map.setdefault(key, []).append(session.duration_seconds() / 60)
-
-    week_labels = sorted(week_map.keys())
-    week_values = [
-        round(sum(week_map[w]) / len(week_map[w]), 1) if week_map[w] else 0
-        for w in week_labels
-    ]
-
-    return render_template(
-        'movement/chart.html',
-        duration_labels=duration_labels,
-        duration_values=duration_values,
-        duration_colors=duration_colors,
-        duration_meta=duration_meta,
-        calendar_days=calendar_days,
-        week_labels=week_labels,
-        week_values=week_values,
+    order = (
+        (UltrasoundRecord.record_date.desc(), UltrasoundRecord.id.desc())
+        if sort == 'desc'
+        else (UltrasoundRecord.record_date.asc(), UltrasoundRecord.id.asc())
     )
+    records = UltrasoundRecord.query.order_by(*order).all()
+    today = date.today()
+    return render_template(
+        'movement/more_records.html',
+        records=records,
+        today=today,
+        date_sort=sort,
+        chart_data=_build_extras_chart_data(records),
+    )
+
+
+@bp.route('/extras/<int:record_id>/edit', methods=['GET', 'POST'])
+def more_records_edit(record_id):
+    record = UltrasoundRecord.query.get_or_404(record_id)
+    if request.method == 'POST':
+        try:
+            _populate_ultrasound_from_form(record)
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return redirect(url_for('movement.more_records_edit', record_id=record_id))
+
+        db.session.commit()
+        flash('记录已更新', 'success')
+        return redirect(url_for('movement.more_records_page'))
+
+    return render_template('movement/more_records_edit.html', record=record, today=date.today())
+
+
+@bp.route('/extras/<int:record_id>/delete', methods=['POST'])
+def more_records_delete(record_id):
+    record = UltrasoundRecord.query.get_or_404(record_id)
+    db.session.delete(record)
+    db.session.commit()
+    flash('记录已删除', 'success')
+    return redirect(url_for('movement.more_records_page'))
 
 
 @bp.route('/api/status')

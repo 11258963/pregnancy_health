@@ -51,7 +51,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 movement-page-header">
     <h2 class="mb-0">动作记录</h2>
     <div class="module-header-actions">
-        <a href="{{ url_for('movement.chart_page') }}" class="btn btn-outline-info movement-toolbar-btn movement-info-btn">图表</a>
+        <a href="{{ url_for('movement.more_records_page') }}" class="btn btn-outline-info movement-toolbar-btn movement-info-btn">更多记录</a>
         <a href="{{ url_for('movement.list_page') }}" class="btn btn-outline-secondary movement-toolbar-btn">列表</a>
     </div>
 </div>
@@ -62,7 +62,6 @@
     <div class="col-lg-5">
         <div class="card">
             <div class="card-body text-center py-4">
-                <p class="text-muted mb-1">今日胎动</p>
                 <div class="kick-count mb-2"><span id="kickCount">0</span><span class="fs-3 text-muted"> / {{ target_kicks }}</span></div>
                 <div class="timer-ring text-muted mb-3" id="timerDisplay">首动起算 2 小时内数满 {{ target_kicks }} 次</div>
 

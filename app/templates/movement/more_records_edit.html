@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}编辑记录 - 更多记录{% endblock %}
+
+{% block extra_css %}
+{% include 'movement/_page_header_styles.html' %}
+<style>
+    .movement-extras-mobile-form .form-label {
+        font-size: 0.82rem;
+        color: var(--text-muted, #5a6e6e);
+        margin-bottom: 4px;
+    }
+    .movement-extras-mobile-form .form-control {
+        font-size: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 movement-page-header">
+    <h2 class="mb-0">编辑记录</h2>
+    <a href="{{ url_for('movement.more_records_page') }}" class="btn btn-outline-secondary movement-toolbar-btn">返回</a>
+</div>
+
+<div class="card d-none d-md-block">
+    <div class="card-body">
+        <form method="POST" id="extrasEditFormDesktop">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">日期</label>
+                    <input type="date" name="record_date" class="form-control"
+                           value="{{ record.record_date.strftime('%Y-%m-%d') }}" max="{{ today.strftime('%Y-%m-%d') }}" required>
+                    <div class="form-text">孕周将根据日期与预产期自动计算</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">当前孕周</label>
+                    <input type="text" class="form-control" value="{{ record.gestational_week }}周{{ record.gestational_day }}天" readonly>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">HR心率 (bpm)</label>
+                    <input type="number" step="1" name="hr" class="form-control" value="{{ record.hr if record.hr is not none else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">BPD双顶径 (cm)</label>
+                    <input type="number" step="0.1" name="bpd" class="form-control" value="{{ record.bpd if record.bpd is not none else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">HC头围 (cm)</label>
+                    <input type="number" step="0.1" name="hc" class="form-control" value="{{ record.hc if record.hc is not none else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">AC腹围 (cm)</label>
+                    <input type="number" step="0.1" name="ac" class="form-control" value="{{ record.ac if record.ac is not none else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">FL股骨 (cm)</label>
+                    <input type="number" step="0.1" name="fl" class="form-control" value="{{ record.fl if record.fl is not none else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">超声估算体重 (g)</label>
+                    <input type="number" step="1" name="estimated_weight" class="form-control"
+                           value="{{ record.estimated_weight if record.estimated_weight is not none else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">超声估算孕龄</label>
+                    <input type="text" name="estimated_gestational_age" class="form-control"
+                           value="{{ record.estimated_gestational_age or '' }}" placeholder="如28w5d">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card movement-extras-mobile-form d-md-none">
+    <div class="card-header py-2">编辑记录</div>
+    <div class="card-body">
+        <form method="POST" id="extrasEditFormMobile">
+            <div class="row g-3">
+                <div class="col-8">
+                    <label class="form-label" for="editDateMobile">日期</label>
+                    <input type="text" name="record_date" id="editDateMobile"
+                           class="form-control" value="{{ record.record_date.strftime('%Y-%m-%d') }}"
+                           placeholder="2026-6-10 或 0610" autocomplete="off" required>
+                </div>
+                <div class="col-4">
+                    <label class="form-label">HR心率</label>
+                    <input type="text" name="hr" class="form-control" inputmode="numeric" placeholder="bpm"
+                           value="{{ record.hr if record.hr is not none else '' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">BPD双顶径</label>
+                    <input type="text" name="bpd" class="form-control" inputmode="decimal" placeholder="cm"
+                           value="{{ record.bpd if record.bpd is not none else '' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">HC头围</label>
+                    <input type="text" name="hc" class="form-control" inputmode="decimal" placeholder="cm"
+                           value="{{ record.hc if record.hc is not none else '' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">AC腹围</label>
+                    <input type="text" name="ac" class="form-control" inputmode="decimal" placeholder="cm"
+                           value="{{ record.ac if record.ac is not none else '' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">FL股骨</label>
+                    <input type="text" name="fl" class="form-control" inputmode="decimal" placeholder="cm"
+                           value="{{ record.fl if record.fl is not none else '' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">超声估算体重</label>
+                    <input type="text" name="estimated_weight" class="form-control" inputmode="numeric" placeholder="g"
+                           value="{{ record.estimated_weight if record.estimated_weight is not none else '' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">超声估算孕龄</label>
+                    <input type="text" name="estimated_gestational_age" class="form-control" placeholder="如28w5d"
+                           value="{{ record.estimated_gestational_age or '' }}">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary w-100">保存</button>
+                </div>
+            </div>
+            <p class="text-muted small mb-0 mt-3">日期支持手输，如 2026-6-10、0610</p>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    function normalizeDateInput(input) {
+        if (!input) return;
+        const raw = (input.value || '').trim();
+        if (!raw) return;
+        const today = new Date();
+        const y = today.getFullYear();
+
+        if (/^\d{8}$/.test(raw)) {
+            input.value = raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8);
+            return;
+        }
+        if (/^\d{4}$/.test(raw)) {
+            input.value = y + '-' + raw.slice(0, 2) + '-' + raw.slice(2, 4);
+            return;
+        }
+        if (/^\d{1,2}-\d{1,2}$/.test(raw)) {
+            const parts = raw.split('-');
+            input.value = y + '-' + String(parts[0]).padStart(2, '0') + '-' + String(parts[1]).padStart(2, '0');
+            return;
+        }
+        const slash = raw.replace(/\//g, '-');
+        if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(slash)) {
+            const parts = slash.split('-');
+            input.value = parts[0] + '-' + String(parts[1]).padStart(2, '0') + '-' + String(parts[2]).padStart(2, '0');
+        }
+    }
+
+    const mobileDate = document.getElementById('editDateMobile');
+    const mobileForm = document.getElementById('extrasEditFormMobile');
+    if (mobileDate) {
+        mobileDate.addEventListener('blur', function() { normalizeDateInput(mobileDate); });
+    }
+    if (mobileForm) {
+        mobileForm.addEventListener('submit', function() {
+            normalizeDateInput(mobileDate);
+        });
+    }
+})();
+</script>
+{% endblock %}

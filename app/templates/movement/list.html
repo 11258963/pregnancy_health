@@ -17,6 +17,26 @@
         font-weight: 500;
         padding: 0.2em 0.5em;
     }
+    @media (max-width: 768px) {
+        .movement-list-table {
+            font-size: 0.85rem;
+        }
+        .movement-list-table th,
+        .movement-list-table td {
+            padding: 10px 8px;
+            vertical-align: middle;
+        }
+        .movement-list-date {
+            line-height: 1.45;
+            min-width: 108px;
+        }
+        .movement-list-date__week {
+            display: block;
+            color: var(--text-muted, #5a6e6e);
+            font-size: 0.82em;
+            margin-top: 2px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -26,14 +46,14 @@
     <div class="module-header-actions movement-list-toolbar__actions">
         {% include 'movement/_date_filter.html' %}
         <a href="{{ url_for('movement.count_page') }}" class="btn btn-primary movement-toolbar-btn">计数</a>
-        <a href="{{ url_for('movement.chart_page') }}" class="btn btn-outline-info movement-toolbar-btn movement-info-btn">图表</a>
+        <a href="{{ url_for('movement.more_records_page') }}" class="btn btn-outline-info movement-toolbar-btn movement-info-btn">更多记录</a>
     </div>
 </div>
 
 {% if day_summaries %}
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 movement-list-table">
             <thead>
                 <tr>
                     <th>日期</th>
@@ -46,7 +66,9 @@
                 {% for row in day_summaries %}
                 <tr class="movement-day-row"
                     onclick="window.location='{{ url_for('movement.list_day_detail', record_date=row.date_str) }}'">
-                    <td>{{ row.date.strftime('%Y-%m-%d') }} · {{ row.gestational_week }}周{{ row.gestational_day }}天</td>
+                    <td class="movement-list-date">
+                        {{ row.date.strftime('%Y-%m-%d') }}<span class="movement-list-date__week d-md-none">{{ row.gestational_week }}周{{ row.gestational_day }}天</span><span class="d-none d-md-inline"> · {{ row.gestational_week }}周{{ row.gestational_day }}天</span>
+                    </td>
                     <td>
                         {% if row.started_at %}
                             {{ row.started_at.strftime('%H:%M:%S') }}

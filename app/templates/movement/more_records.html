@@ -1,0 +1,1063 @@
+{% extends "base.html" %}
+
+{% block title %}更多记录 - 动作记录{% endblock %}
+
+{% block extra_css %}
+{% include 'movement/_page_header_styles.html' %}
+<style>
+    .movement-extras-table {
+        font-size: 0.9rem;
+        table-layout: auto;
+        min-width: 960px;
+    }
+    .movement-extras-table th,
+    .movement-extras-table td {
+        vertical-align: middle;
+        padding: 0;
+    }
+    .movement-extras-table th {
+        white-space: nowrap;
+        padding: 10px 10px;
+        background: #fafcfb;
+        font-size: 0.85rem;
+    }
+    .movement-extras-table .cell-display {
+        padding: 10px 10px;
+    }
+    .movement-extras-date {
+        white-space: nowrap;
+        min-width: 168px;
+    }
+    .movement-extras-sheet td {
+        border-right: 1px solid #dee2e6;
+    }
+    .movement-extras-sheet td:last-child {
+        border-right: none;
+    }
+    .movement-extras-input-row {
+        background-color: #f3faf8;
+    }
+    .movement-extras-input-row td:focus-within {
+        box-shadow: inset 0 0 0 2px rgba(91, 181, 160, 0.45);
+        background: #fff;
+    }
+    .movement-extras-input-row .sheet-input {
+        width: 100%;
+        min-width: 64px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        padding: 10px 10px;
+        font-size: inherit;
+        box-shadow: none;
+    }
+    .movement-extras-input-row .sheet-input:focus {
+        outline: none;
+        box-shadow: none;
+        background: transparent;
+    }
+    .movement-extras-input-row .sheet-input::placeholder {
+        color: #adb5bd;
+        font-size: 0.85em;
+    }
+    .movement-extras-actions {
+        padding: 8px 10px;
+        white-space: nowrap;
+        min-width: 100px;
+    }
+    .movement-extras-actions .btn {
+        font-size: 0.72rem;
+        padding: 2px 7px;
+        line-height: 1.35;
+        min-height: auto;
+    }
+    .movement-extras-hint {
+        font-size: 0.82rem;
+        color: var(--text-muted, #5a6e6e);
+        padding: 10px 14px 14px;
+        border-top: 1px solid #eee;
+        line-height: 1.6;
+    }
+    .movement-extras-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 移动端卡片 */
+    .movement-extras-mobile-card {
+        border: 1px solid rgba(91, 181, 160, 0.25);
+        border-radius: 12px;
+        background: #fff;
+        padding: 12px 10px 14px 14px;
+        margin-bottom: 12px;
+        position: relative;
+    }
+    .movement-extras-mobile-card__head {
+        margin-bottom: 10px;
+        padding-right: 52px;
+    }
+    .movement-extras-mobile-card__date {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+    .movement-extras-mobile-card__week {
+        font-weight: 400;
+        font-size: 0.88rem;
+        color: var(--text-muted, #5a6e6e);
+    }
+    .movement-extras-mobile-card__tools {
+        position: absolute;
+        top: 2px;
+        right: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        flex-shrink: 0;
+    }
+    .movement-extras-mobile-card__tools form {
+        display: inline-flex !important;
+        margin: 0;
+        padding: 0;
+        vertical-align: top;
+    }
+    .movement-extras-mobile-card__tools .btn {
+        width: 26px;
+        height: 26px;
+        padding: 0;
+        margin: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        border: none;
+        color: #9aa3a8;
+        background: transparent;
+        box-shadow: none;
+    }
+    .movement-extras-mobile-card__tools form .btn {
+        margin-left: -8px;
+    }
+    .movement-extras-mobile-card__tools .btn:hover,
+    .movement-extras-mobile-card__tools .btn:focus {
+        color: #7a8388;
+        background: transparent;
+    }
+    .movement-extras-mobile-card__tools .btn i {
+        font-size: 0.95rem;
+    }
+    .movement-extras-mobile-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px 4px;
+    }
+    .movement-extras-mobile-item {
+        text-align: center;
+        min-width: 0;
+    }
+    .movement-extras-mobile-item label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--text-muted, #5a6e6e);
+        margin-bottom: 2px;
+        line-height: 1.35;
+    }
+    .movement-extras-mobile-item span {
+        font-size: 0.92rem;
+        line-height: 1.4;
+        word-break: break-word;
+    }
+    .movement-extras-mobile-item.is-metric label {
+        font-size: 0.65rem;
+        line-height: 1.15;
+        margin-bottom: 3px;
+    }
+    .movement-extras-mobile-item.is-metric span {
+        font-size: 0.85rem;
+    }
+    .movement-extras-mobile-estimate-row {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+    }
+    .movement-extras-mobile-form .form-label {
+        font-size: 0.82rem;
+        color: var(--text-muted, #5a6e6e);
+        margin-bottom: 4px;
+    }
+    .movement-extras-mobile-form .form-control {
+        font-size: 1rem;
+    }
+    .movement-extras-view-toggle {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .movement-extras-view-toggle__group {
+        display: inline-flex;
+        padding: 2px;
+        gap: 2px;
+        background: rgba(91, 181, 160, 0.07);
+        border: 1px solid rgba(91, 181, 160, 0.18);
+        border-radius: 8px;
+    }
+    .movement-extras-view-toggle__group--view .movement-extras-view-toggle__btn {
+        padding: 3px 9px;
+        font-size: 0.72rem;
+    }
+    .movement-extras-view-toggle__btn {
+        border: none;
+        background: transparent;
+        color: #8a9499;
+        font-size: 0.75rem;
+        padding: 3px 12px;
+        border-radius: 6px;
+        line-height: 1.35;
+        font-weight: 400;
+    }
+    .movement-extras-view-toggle__btn.active {
+        background: #fff;
+        color: #3d8f7e;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+    .movement-extras-view-toggle__btn--sort {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px;
+    }
+    .movement-extras-view-toggle__btn--sort i {
+        font-size: 0.82rem;
+        line-height: 1;
+    }
+    .movement-extras-chart-card {
+        border: 1px solid rgba(91, 181, 160, 0.25);
+        border-radius: 12px;
+        background: #fff;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    .movement-extras-chart-title {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-muted, #5a6e6e);
+        margin-bottom: 8px;
+    }
+    .movement-extras-chart-scroll-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .movement-extras-chart-scroll-content {
+        min-width: 100%;
+    }
+    .movement-extras-chart-wrap {
+        position: relative;
+        height: 260px;
+    }
+    .movement-extras-chart-wrap--desktop {
+        height: 320px;
+    }
+    .movement-extras-chart-empty {
+        text-align: center;
+        color: #8a9499;
+        font-size: 0.85rem;
+        padding: 28px 0;
+    }
+    .movement-extras-mobile-compare-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid rgba(91, 181, 160, 0.25);
+        border-radius: 12px;
+        background: #fff;
+        margin-bottom: 12px;
+    }
+    .movement-extras-mobile-compare {
+        font-size: 0.74rem;
+        table-layout: fixed;
+        width: 100%;
+        min-width: 520px;
+        margin-bottom: 0;
+    }
+    .movement-extras-mobile-compare th,
+    .movement-extras-mobile-compare td {
+        padding: 6px 4px;
+        vertical-align: middle;
+        white-space: nowrap;
+        text-align: center;
+    }
+    .movement-extras-mobile-compare thead th {
+        background: #fafcfb;
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.25;
+        padding: 6px 3px;
+    }
+    .movement-extras-mobile-compare .col-age {
+        white-space: normal;
+        font-size: 0.72rem;
+        line-height: 1.25;
+        min-width: 52px;
+    }
+    .movement-extras-mobile-compare thead .col-age {
+        font-size: 0.66rem;
+    }
+    .movement-extras-mobile-compare .sticky-date {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: #fff;
+        width: 68px;
+        min-width: 68px;
+        max-width: 68px;
+        box-shadow: 2px 0 6px rgba(0, 0, 0, 0.06);
+        white-space: normal;
+        line-height: 1.25;
+        font-size: 0.72rem;
+        padding: 6px 4px;
+        text-align: center;
+    }
+    .movement-extras-mobile-compare thead .sticky-date {
+        background: #fafcfb;
+        z-index: 3;
+        width: 68px;
+        min-width: 68px;
+        max-width: 68px;
+    }
+    .movement-extras-mobile-compare .sticky-date__week {
+        display: block;
+        color: var(--text-muted, #5a6e6e);
+        font-size: 0.88em;
+        margin-top: 2px;
+        line-height: 1.25;
+    }
+    .movement-extras-mobile-compare-hint {
+        font-size: 0.78rem;
+        color: var(--text-muted, #5a6e6e);
+        padding: 8px 10px;
+        border-top: 1px solid #eee;
+        margin: 0;
+    }
+    @media (max-width: 768px) {
+        .movement-page-header h2 {
+            font-size: 1.25rem;
+        }
+        .movement-extras-hint {
+            font-size: 0.78rem;
+        }
+        .movement-extras-hint code {
+            font-size: 0.85em;
+            word-break: break-all;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 movement-page-header">
+    <h2 class="mb-0">更多记录</h2>
+    <div class="module-header-actions">
+        <a href="{{ url_for('movement.count_page') }}" class="btn btn-primary movement-toolbar-btn">计数</a>
+        <a href="{{ url_for('movement.list_page') }}" class="btn btn-outline-secondary movement-toolbar-btn">列表</a>
+    </div>
+</div>
+
+<form id="extrasEntryFormDesktop" method="POST" class="d-none"></form>
+
+{% if records %}
+<div class="d-none d-md-flex movement-extras-view-toggle" role="group" aria-label="桌面展示方式">
+    <div class="movement-extras-view-toggle__group movement-extras-view-toggle__group--view">
+        <button type="button" class="movement-extras-view-toggle__btn active" id="desktopViewTableBtn" data-view="table">表格</button>
+        <button type="button" class="movement-extras-view-toggle__btn" id="desktopViewChartBtn" data-view="chart">图表</button>
+    </div>
+</div>
+{% endif %}
+
+<div class="card d-none d-md-block" id="desktopTableView">
+    <div class="movement-extras-scroll">
+        <table class="table table-hover movement-extras-table movement-extras-sheet mb-0">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>HR心率</th>
+                    <th>BPD双顶径</th>
+                    <th>HC头围</th>
+                    <th>AC腹围</th>
+                    <th>FL股骨</th>
+                    <th>超声估算体重</th>
+                    <th>超声估算孕龄</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td class="cell-display movement-extras-date">
+                        {{ record.record_date.strftime('%Y-%m-%d') }} · {{ record.gestational_week }}周{{ record.gestational_day }}天
+                    </td>
+                    <td class="cell-display">{% if record.hr is not none %}{{ record.hr }}{% else %}—{% endif %}</td>
+                    <td class="cell-display">{% if record.bpd is not none %}{{ record.bpd }}{% else %}—{% endif %}</td>
+                    <td class="cell-display">{% if record.hc is not none %}{{ record.hc }}{% else %}—{% endif %}</td>
+                    <td class="cell-display">{% if record.ac is not none %}{{ record.ac }}{% else %}—{% endif %}</td>
+                    <td class="cell-display">{% if record.fl is not none %}{{ record.fl }}{% else %}—{% endif %}</td>
+                    <td class="cell-display">{% if record.estimated_weight is not none %}{{ record.estimated_weight }}{% else %}—{% endif %}</td>
+                    <td class="cell-display">{{ record.estimated_gestational_age or '—' }}</td>
+                    <td class="movement-extras-actions">
+                        <a href="{{ url_for('movement.more_records_edit', record_id=record.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                        <form method="POST" action="{{ url_for('movement.more_records_delete', record_id=record.id) }}" class="d-inline" onsubmit="return confirm('确定删除这条记录？')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr class="movement-extras-input-row">
+                    <td>
+                        <input type="text" form="extrasEntryFormDesktop" name="record_date" id="entryDate"
+                               class="sheet-input" value="{{ today.strftime('%Y-%m-%d') }}"
+                               placeholder="2026-6-10" autocomplete="off" required>
+                    </td>
+                    <td><input type="text" form="extrasEntryFormDesktop" name="hr" class="sheet-input extras-field" inputmode="numeric" placeholder="bpm"></td>
+                    <td><input type="text" form="extrasEntryFormDesktop" name="bpd" class="sheet-input extras-field" inputmode="decimal" placeholder="cm"></td>
+                    <td><input type="text" form="extrasEntryFormDesktop" name="hc" class="sheet-input extras-field" inputmode="decimal" placeholder="cm"></td>
+                    <td><input type="text" form="extrasEntryFormDesktop" name="ac" class="sheet-input extras-field" inputmode="decimal" placeholder="cm"></td>
+                    <td><input type="text" form="extrasEntryFormDesktop" name="fl" class="sheet-input extras-field" inputmode="decimal" placeholder="cm"></td>
+                    <td><input type="text" form="extrasEntryFormDesktop" name="estimated_weight" class="sheet-input extras-field" inputmode="numeric" placeholder="g"></td>
+                    <td><input type="text" form="extrasEntryFormDesktop" name="estimated_gestational_age" class="sheet-input extras-field" placeholder="28w5d"></td>
+                    <td class="movement-extras-actions">
+                        <button type="submit" form="extrasEntryFormDesktop" class="btn btn-sm btn-primary">保存</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="movement-extras-hint mb-0 d-none d-md-block" id="desktopTableHint">
+        Tab / Enter 跳转下一格 · 最后一格 Enter 保存 · 日期可手输 <code>2026-6-10</code>、<code>0610</code>
+    </p>
+</div>
+
+{% if records %}
+<div id="desktopChartView" class="d-none">
+    <div class="movement-extras-chart-card">
+        <div class="movement-extras-chart-title">BPD / FL（左轴）· HC / AC（右轴）</div>
+        <div class="movement-extras-chart-scroll-wrap" id="extrasMetricsChartScrollWrapDesktop">
+            <div class="movement-extras-chart-scroll-content" id="extrasMetricsChartScrollContentDesktop">
+                <div class="movement-extras-chart-wrap movement-extras-chart-wrap--desktop" id="extrasMetricsChartWrapDesktop">
+                    <canvas id="extrasMetricsChartDesktop"></canvas>
+                </div>
+            </div>
+        </div>
+        <p class="movement-extras-chart-empty d-none" id="extrasMetricsChartEmptyDesktop">暂无测量数据</p>
+    </div>
+    <div class="movement-extras-chart-card">
+        <div class="movement-extras-chart-title">超声估算体重（g）</div>
+        <div class="movement-extras-chart-scroll-wrap" id="extrasWeightChartScrollWrapDesktop">
+            <div class="movement-extras-chart-scroll-content" id="extrasWeightChartScrollContentDesktop">
+                <div class="movement-extras-chart-wrap movement-extras-chart-wrap--desktop" id="extrasWeightChartWrapDesktop">
+                    <canvas id="extrasWeightChartDesktop"></canvas>
+                </div>
+            </div>
+        </div>
+        <p class="movement-extras-chart-empty d-none" id="extrasWeightChartEmptyDesktop">暂无体重数据</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="d-md-none">
+    {% if records %}
+    <div class="movement-extras-view-toggle" role="group" aria-label="展示方式">
+        <div class="movement-extras-view-toggle__group movement-extras-view-toggle__group--view">
+            <button type="button" class="movement-extras-view-toggle__btn active" id="mobileViewCardsBtn" data-view="cards">卡片</button>
+            <button type="button" class="movement-extras-view-toggle__btn" id="mobileViewTableBtn" data-view="table">表格</button>
+            <button type="button" class="movement-extras-view-toggle__btn" id="mobileViewChartBtn" data-view="chart">图表</button>
+        </div>
+        <div class="movement-extras-view-toggle__group" id="mobileSortGroup">
+            <button type="button" class="movement-extras-view-toggle__btn movement-extras-view-toggle__btn--sort active" id="mobileDateSortBtn" data-sort="{{ date_sort }}" aria-label="切换日期排序">
+                {% if date_sort == 'desc' %}
+                <i class="bi bi-sort-down"></i><span>降序</span>
+                {% else %}
+                <i class="bi bi-sort-up"></i><span>升序</span>
+                {% endif %}
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-muted text-center py-3 mb-3">暂无记录</p>
+    {% endif %}
+
+    <div id="mobileCardsView">
+    {% for record in records %}
+    <div class="movement-extras-mobile-card">
+        <div class="movement-extras-mobile-card__head">
+            <div class="movement-extras-mobile-card__date">
+                <span>{{ record.record_date.strftime('%Y-%m-%d') }}</span>
+                <span class="movement-extras-mobile-card__week">{{ record.gestational_week }}周{{ record.gestational_day }}天</span>
+            </div>
+            <div class="movement-extras-mobile-card__tools">
+                <a href="{{ url_for('movement.more_records_edit', record_id=record.id) }}" class="btn btn-sm" aria-label="编辑">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <form method="POST" action="{{ url_for('movement.more_records_delete', record_id=record.id) }}" onsubmit="return confirm('确定删除这条记录？')">
+                    <button type="submit" class="btn btn-sm" aria-label="删除">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="movement-extras-mobile-grid">
+            <div class="movement-extras-mobile-item is-metric">
+                <label>HR<br>心率</label>
+                <span>{% if record.hr is not none %}{{ record.hr }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="movement-extras-mobile-item is-metric">
+                <label>BPD<br>双顶径</label>
+                <span>{% if record.bpd is not none %}{{ record.bpd }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="movement-extras-mobile-item is-metric">
+                <label>HC<br>头围</label>
+                <span>{% if record.hc is not none %}{{ record.hc }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="movement-extras-mobile-item is-metric">
+                <label>AC<br>腹围</label>
+                <span>{% if record.ac is not none %}{{ record.ac }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="movement-extras-mobile-item is-metric">
+                <label>FL<br>股骨</label>
+                <span>{% if record.fl is not none %}{{ record.fl }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="movement-extras-mobile-estimate-row">
+                <div class="movement-extras-mobile-item">
+                    <label>超声估算体重</label>
+                    <span>{% if record.estimated_weight is not none %}{{ record.estimated_weight }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="movement-extras-mobile-item">
+                    <label>超声估算孕龄</label>
+                    <span>{{ record.estimated_gestational_age or '—' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+
+    {% if records %}
+    <div id="mobileTableView" class="d-none">
+        <div class="movement-extras-mobile-compare-wrap">
+            <table class="table table-hover movement-extras-mobile-compare">
+                <colgroup>
+                    <col style="width:68px">
+                    <col style="width:36px">
+                    <col style="width:42px">
+                    <col style="width:42px">
+                    <col style="width:42px">
+                    <col style="width:42px">
+                    <col style="width:44px">
+                    <col style="width:56px">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th class="sticky-date">日期</th>
+                        <th>HR<br>心率</th>
+                        <th>BPD<br>双顶径</th>
+                        <th>HC<br>头围</th>
+                        <th>AC<br>腹围</th>
+                        <th>FL<br>股骨</th>
+                        <th>估算<br>体重</th>
+                        <th class="col-age">估算<br>孕龄</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr onclick="window.location='{{ url_for('movement.more_records_edit', record_id=record.id) }}'" style="cursor:pointer;">
+                        <td class="sticky-date">
+                            {{ record.record_date.strftime('%m-%d') }}
+                            <span class="sticky-date__week">{{ record.gestational_week }}周{{ record.gestational_day }}天</span>
+                        </td>
+                        <td>{% if record.hr is not none %}{{ record.hr }}{% else %}—{% endif %}</td>
+                        <td>{% if record.bpd is not none %}{{ record.bpd }}{% else %}—{% endif %}</td>
+                        <td>{% if record.hc is not none %}{{ record.hc }}{% else %}—{% endif %}</td>
+                        <td>{% if record.ac is not none %}{{ record.ac }}{% else %}—{% endif %}</td>
+                        <td>{% if record.fl is not none %}{{ record.fl }}{% else %}—{% endif %}</td>
+                        <td>{% if record.estimated_weight is not none %}{{ record.estimated_weight }}{% else %}—{% endif %}</td>
+                        <td class="col-age">{{ record.estimated_gestational_age or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="movement-extras-mobile-compare-hint">左右滑动查看 · 点击一行可编辑</p>
+        </div>
+    </div>
+
+    <div id="mobileChartView" class="d-none">
+        <div class="movement-extras-chart-card">
+            <div class="movement-extras-chart-title">BPD / FL（左轴）· HC / AC（右轴）</div>
+            <div class="movement-extras-chart-scroll-wrap" id="extrasMetricsChartScrollWrap">
+                <div class="movement-extras-chart-scroll-content" id="extrasMetricsChartScrollContent">
+                    <div class="movement-extras-chart-wrap" id="extrasMetricsChartWrap">
+                        <canvas id="extrasMetricsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <p class="movement-extras-chart-empty d-none" id="extrasMetricsChartEmpty">暂无测量数据</p>
+        </div>
+        <div class="movement-extras-chart-card">
+            <div class="movement-extras-chart-title">超声估算体重（g）</div>
+            <div class="movement-extras-chart-scroll-wrap" id="extrasWeightChartScrollWrap">
+                <div class="movement-extras-chart-scroll-content" id="extrasWeightChartScrollContent">
+                    <div class="movement-extras-chart-wrap" id="extrasWeightChartWrap">
+                        <canvas id="extrasWeightChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <p class="movement-extras-chart-empty d-none" id="extrasWeightChartEmpty">暂无体重数据</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card movement-extras-mobile-form" id="mobileAddRecordCard">
+        <div class="card-header py-2">添加记录</div>
+        <div class="card-body">
+            <form method="POST" id="extrasEntryFormMobile">
+            <div class="row g-3">
+                <div class="col-8">
+                    <label class="form-label" for="entryDateMobile">日期</label>
+                    <input type="text" name="record_date" id="entryDateMobile"
+                           class="form-control" value="{{ today.strftime('%Y-%m-%d') }}"
+                           placeholder="2026-6-10 或 0610" autocomplete="off" required>
+                </div>
+                <div class="col-4">
+                    <label class="form-label">HR心率</label>
+                    <input type="text" name="hr" class="form-control" inputmode="numeric" placeholder="bpm">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">BPD双顶径</label>
+                    <input type="text" name="bpd" class="form-control" inputmode="decimal" placeholder="cm">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">HC头围</label>
+                    <input type="text" name="hc" class="form-control" inputmode="decimal" placeholder="cm">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">AC腹围</label>
+                    <input type="text" name="ac" class="form-control" inputmode="decimal" placeholder="cm">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">FL股骨</label>
+                    <input type="text" name="fl" class="form-control" inputmode="decimal" placeholder="cm">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">超声估算体重</label>
+                    <input type="text" name="estimated_weight" class="form-control" inputmode="numeric" placeholder="g">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">超声估算孕龄</label>
+                    <input type="text" name="estimated_gestational_age" class="form-control" placeholder="如28w5d">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary w-100">保存</button>
+                </div>
+            </div>
+            <p class="text-muted small mb-0 mt-3">日期支持手输，如 2026-6-10、0610</p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script>
+(function() {
+    function normalizeDateInput(input) {
+        if (!input) return;
+        const raw = (input.value || '').trim();
+        if (!raw) return;
+        const today = new Date();
+        const y = today.getFullYear();
+
+        if (/^\d{8}$/.test(raw)) {
+            input.value = raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8);
+            return;
+        }
+        if (/^\d{4}$/.test(raw)) {
+            input.value = y + '-' + raw.slice(0, 2) + '-' + raw.slice(2, 4);
+            return;
+        }
+        if (/^\d{1,2}-\d{1,2}$/.test(raw)) {
+            const parts = raw.split('-');
+            input.value = y + '-' + String(parts[0]).padStart(2, '0') + '-' + String(parts[1]).padStart(2, '0');
+            return;
+        }
+        const slash = raw.replace(/\//g, '-');
+        if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(slash)) {
+            const parts = slash.split('-');
+            input.value = parts[0] + '-' + String(parts[1]).padStart(2, '0') + '-' + String(parts[2]).padStart(2, '0');
+        }
+    }
+
+    const desktopForm = document.getElementById('extrasEntryFormDesktop');
+    const orderedFields = [
+        document.getElementById('entryDate'),
+        ...Array.from(document.querySelectorAll('.movement-extras-input-row .extras-field')),
+    ].filter(Boolean);
+
+    function focusField(index) {
+        if (index < 0 || index >= orderedFields.length) return;
+        orderedFields[index].focus();
+        orderedFields[index].select();
+    }
+
+    orderedFields.forEach(function(field, index) {
+        field.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const next = e.shiftKey ? index - 1 : index + 1;
+                if (next >= 0 && next < orderedFields.length) focusField(next);
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (index < orderedFields.length - 1) focusField(index + 1);
+                else if (desktopForm) desktopForm.requestSubmit();
+            }
+        });
+        if (field.id === 'entryDate') {
+            field.addEventListener('blur', function() { normalizeDateInput(field); });
+        }
+    });
+
+    if (desktopForm) {
+        desktopForm.addEventListener('submit', function() {
+            normalizeDateInput(document.getElementById('entryDate'));
+        });
+    }
+
+    const mobileDate = document.getElementById('entryDateMobile');
+    const mobileForm = document.getElementById('extrasEntryFormMobile');
+    if (mobileDate) {
+        mobileDate.addEventListener('blur', function() { normalizeDateInput(mobileDate); });
+    }
+    if (mobileForm) {
+        mobileForm.addEventListener('submit', function() {
+            normalizeDateInput(mobileDate);
+        });
+    }
+
+    const cardsBtn = document.getElementById('mobileViewCardsBtn');
+    const tableBtn = document.getElementById('mobileViewTableBtn');
+    const chartBtn = document.getElementById('mobileViewChartBtn');
+    const cardsView = document.getElementById('mobileCardsView');
+    const tableView = document.getElementById('mobileTableView');
+    const chartView = document.getElementById('mobileChartView');
+    const sortGroup = document.getElementById('mobileSortGroup');
+    const mobileAddRecordCard = document.getElementById('mobileAddRecordCard');
+    const desktopTableView = document.getElementById('desktopTableView');
+    const desktopChartView = document.getElementById('desktopChartView');
+    const desktopTableBtn = document.getElementById('desktopViewTableBtn');
+    const desktopChartBtn = document.getElementById('desktopViewChartBtn');
+    const VIEW_KEY = 'movementExtrasMobileView';
+    const DESKTOP_VIEW_KEY = 'movementExtrasDesktopView';
+    const chartData = {{ chart_data | tojson }};
+    const CHART_POINT_WIDTH_MOBILE = 56;
+    const CHART_POINT_WIDTH_DESKTOP = 72;
+    const HC_COLOR = '#3b6fc9';
+    const HC_FILL = 'rgba(59, 111, 201, 0.12)';
+    let mobileChartsInitialized = false;
+    let desktopChartsInitialized = false;
+
+    if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+        Chart.register(ChartDataLabels);
+    }
+
+    function hasAnyValue(values) {
+        return values.some(function(v) { return v !== null && v !== undefined; });
+    }
+
+    function formatMetricLabel(value) {
+        if (value === null || value === undefined) return '';
+        return Number.isInteger(value) ? String(value) : Number(value).toFixed(1);
+    }
+
+    function applyChartScroll(scrollWrap, scrollContent, pointCount, pointWidth) {
+        if (!scrollWrap || !scrollContent || !pointCount) return;
+        const minWidth = scrollWrap.clientWidth || 280;
+        scrollContent.style.width = Math.max(minWidth, pointCount * pointWidth) + 'px';
+    }
+
+    function buildXScaleOpts(tickFont) {
+        return {
+            grid: { display: false },
+            ticks: {
+                font: tickFont,
+                autoSkip: false,
+                maxRotation: 0,
+                padding: 4,
+                callback: function(_value, index) {
+                    const dateLabel = chartData.labels[index];
+                    const weekLabel = chartData.weeks[index];
+                    if (!dateLabel) return '';
+                    return weekLabel ? [dateLabel, weekLabel] : dateLabel;
+                },
+            },
+        };
+    }
+
+    function buildMetricsChartOptions(tickFont, xScaleOpts, legendOpts, lineLabelPlugin) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { top: 18, bottom: 4 } },
+            interaction: { mode: 'index', intersect: false },
+            plugins: Object.assign({ legend: legendOpts }, lineLabelPlugin),
+            scales: {
+                x: xScaleOpts,
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    ticks: { font: tickFont },
+                    title: { display: true, text: 'BPD/FL cm', font: { size: 10 } },
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    ticks: { font: tickFont },
+                    title: { display: true, text: 'HC/AC cm', font: { size: 10 } },
+                    grid: { drawOnChartArea: false },
+                },
+            },
+        };
+    }
+
+    function buildMetricsDatasets() {
+        return [
+            { label: 'BPD 双顶径', data: chartData.bpd, yAxisID: 'y', borderColor: '#5bb5a0', backgroundColor: 'rgba(91, 181, 160, 0.12)', pointBackgroundColor: '#5bb5a0', pointBorderColor: '#5bb5a0', pointBorderWidth: 1, tension: 0.25, pointRadius: 3, spanGaps: true },
+            { label: 'FL 股骨', data: chartData.fl, yAxisID: 'y', borderColor: '#9b7ed9', backgroundColor: 'rgba(155, 126, 217, 0.12)', pointBackgroundColor: '#9b7ed9', pointBorderColor: '#9b7ed9', pointBorderWidth: 1, tension: 0.25, pointRadius: 3, spanGaps: true },
+            { label: 'HC 头围', data: chartData.hc, yAxisID: 'y1', borderColor: HC_COLOR, backgroundColor: HC_FILL, pointBackgroundColor: HC_COLOR, pointBorderColor: HC_COLOR, pointBorderWidth: 1, tension: 0.25, pointRadius: 3, spanGaps: true },
+            { label: 'AC 腹围', data: chartData.ac, yAxisID: 'y1', borderColor: '#e8a54b', backgroundColor: 'rgba(232, 165, 75, 0.12)', pointBackgroundColor: '#e8a54b', pointBorderColor: '#e8a54b', pointBorderWidth: 1, tension: 0.25, pointRadius: 3, spanGaps: true },
+        ];
+    }
+
+    function mountChartPair(ids, pointWidth) {
+        const metricsCanvas = document.getElementById(ids.metricsCanvas);
+        const weightCanvas = document.getElementById(ids.weightCanvas);
+        const metricsWrap = document.getElementById(ids.metricsWrap);
+        const weightWrap = document.getElementById(ids.weightWrap);
+        const metricsScrollWrap = document.getElementById(ids.metricsScrollWrap);
+        const metricsScrollContent = document.getElementById(ids.metricsScrollContent);
+        const weightScrollWrap = document.getElementById(ids.weightScrollWrap);
+        const weightScrollContent = document.getElementById(ids.weightScrollContent);
+        const metricsEmpty = document.getElementById(ids.metricsEmpty);
+        const weightEmpty = document.getElementById(ids.weightEmpty);
+        if (!metricsCanvas && !weightCanvas) return;
+
+        const hasMetrics = hasAnyValue(chartData.bpd) || hasAnyValue(chartData.hc)
+            || hasAnyValue(chartData.ac) || hasAnyValue(chartData.fl);
+        const hasWeight = hasAnyValue(chartData.weight);
+        const pointCount = chartData.labels.length;
+
+        if (metricsWrap) metricsWrap.classList.toggle('d-none', !hasMetrics);
+        if (metricsEmpty) metricsEmpty.classList.toggle('d-none', hasMetrics);
+        if (weightWrap) weightWrap.classList.toggle('d-none', !hasWeight);
+        if (weightEmpty) weightEmpty.classList.toggle('d-none', hasWeight);
+        if (metricsScrollWrap) metricsScrollWrap.classList.toggle('d-none', !hasMetrics);
+        if (weightScrollWrap) weightScrollWrap.classList.toggle('d-none', !hasWeight);
+
+        const tickFont = { size: 10 };
+        const legendOpts = {
+            position: 'bottom',
+            labels: {
+                usePointStyle: true,
+                pointStyle: 'circle',
+                boxWidth: 6,
+                boxHeight: 6,
+                padding: 10,
+                font: { size: 10 },
+            },
+        };
+        const xScaleOpts = buildXScaleOpts(tickFont);
+        const lineLabelPlugin = {
+            datalabels: {
+                display: function(context) {
+                    return context.dataset.data[context.dataIndex] !== null
+                        && context.dataset.data[context.dataIndex] !== undefined;
+                },
+                anchor: 'end',
+                align: 'top',
+                offset: 2,
+                font: { size: 9, weight: '600' },
+                formatter: formatMetricLabel,
+                color: function(context) {
+                    return context.dataset.borderColor;
+                },
+            },
+        };
+        const barLabelPlugin = {
+            datalabels: {
+                display: function(context) {
+                    return context.dataset.data[context.dataIndex] !== null
+                        && context.dataset.data[context.dataIndex] !== undefined;
+                },
+                anchor: 'end',
+                align: 'top',
+                offset: 2,
+                font: { size: 10, weight: '600' },
+                color: '#3d8f7e',
+                formatter: function(value) {
+                    if (value === null || value === undefined) return '';
+                    return Math.round(value);
+                },
+            },
+        };
+
+        if (hasMetrics && metricsCanvas) {
+            applyChartScroll(metricsScrollWrap, metricsScrollContent, pointCount, pointWidth);
+            new Chart(metricsCanvas, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: buildMetricsDatasets(),
+                },
+                options: buildMetricsChartOptions(tickFont, xScaleOpts, legendOpts, lineLabelPlugin),
+            });
+        }
+
+        if (hasWeight && weightCanvas) {
+            applyChartScroll(weightScrollWrap, weightScrollContent, pointCount, pointWidth);
+            new Chart(weightCanvas, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: '估算体重',
+                        data: chartData.weight,
+                        backgroundColor: 'rgba(91, 181, 160, 0.65)',
+                        borderColor: '#5bb5a0',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 22 } },
+                    plugins: Object.assign({ legend: { display: false } }, barLabelPlugin),
+                    scales: {
+                        x: xScaleOpts,
+                        y: {
+                            ticks: { font: tickFont },
+                            grace: '10%',
+                        },
+                    },
+                },
+            });
+        }
+    }
+
+    function initMobileCharts() {
+        if (mobileChartsInitialized || typeof Chart === 'undefined') return;
+        mountChartPair({
+            metricsCanvas: 'extrasMetricsChart',
+            weightCanvas: 'extrasWeightChart',
+            metricsWrap: 'extrasMetricsChartWrap',
+            weightWrap: 'extrasWeightChartWrap',
+            metricsScrollWrap: 'extrasMetricsChartScrollWrap',
+            metricsScrollContent: 'extrasMetricsChartScrollContent',
+            weightScrollWrap: 'extrasWeightChartScrollWrap',
+            weightScrollContent: 'extrasWeightChartScrollContent',
+            metricsEmpty: 'extrasMetricsChartEmpty',
+            weightEmpty: 'extrasWeightChartEmpty',
+        }, CHART_POINT_WIDTH_MOBILE);
+        mobileChartsInitialized = true;
+    }
+
+    function initDesktopCharts() {
+        if (desktopChartsInitialized || typeof Chart === 'undefined') return;
+        mountChartPair({
+            metricsCanvas: 'extrasMetricsChartDesktop',
+            weightCanvas: 'extrasWeightChartDesktop',
+            metricsWrap: 'extrasMetricsChartWrapDesktop',
+            weightWrap: 'extrasWeightChartWrapDesktop',
+            metricsScrollWrap: 'extrasMetricsChartScrollWrapDesktop',
+            metricsScrollContent: 'extrasMetricsChartScrollContentDesktop',
+            weightScrollWrap: 'extrasWeightChartScrollWrapDesktop',
+            weightScrollContent: 'extrasWeightChartScrollContentDesktop',
+            metricsEmpty: 'extrasMetricsChartEmptyDesktop',
+            weightEmpty: 'extrasWeightChartEmptyDesktop',
+        }, CHART_POINT_WIDTH_DESKTOP);
+        desktopChartsInitialized = true;
+    }
+
+    function setDesktopView(view) {
+        const isTable = view === 'table';
+        const isChart = view === 'chart';
+        if (desktopTableView) {
+            desktopTableView.classList.toggle('d-md-block', isTable);
+            desktopTableView.classList.toggle('d-none', !isTable);
+        }
+        if (desktopChartView) {
+            desktopChartView.classList.toggle('d-md-block', isChart);
+            desktopChartView.classList.toggle('d-none', !isChart);
+        }
+        if (desktopTableBtn) desktopTableBtn.classList.toggle('active', isTable);
+        if (desktopChartBtn) desktopChartBtn.classList.toggle('active', isChart);
+        if (isChart) initDesktopCharts();
+        try { sessionStorage.setItem(DESKTOP_VIEW_KEY, view); } catch (e) {}
+    }
+
+    if (desktopTableBtn && desktopChartBtn) {
+        desktopTableBtn.addEventListener('click', function() { setDesktopView('table'); });
+        desktopChartBtn.addEventListener('click', function() { setDesktopView('chart'); });
+        let desktopSaved = 'table';
+        try { desktopSaved = sessionStorage.getItem(DESKTOP_VIEW_KEY) || 'table'; } catch (e) {}
+        if (desktopSaved === 'chart') setDesktopView('chart');
+    }
+
+    function setMobileView(view) {
+        if (!cardsView) return;
+        const isCards = view === 'cards';
+        const isTable = view === 'table';
+        const isChart = view === 'chart';
+        cardsView.classList.toggle('d-none', !isCards);
+        if (tableView) tableView.classList.toggle('d-none', !isTable);
+        if (chartView) chartView.classList.toggle('d-none', !isChart);
+        if (mobileAddRecordCard) mobileAddRecordCard.classList.toggle('d-none', isChart);
+        if (cardsBtn) cardsBtn.classList.toggle('active', isCards);
+        if (tableBtn) tableBtn.classList.toggle('active', isTable);
+        if (chartBtn) chartBtn.classList.toggle('active', isChart);
+        if (sortGroup) sortGroup.classList.toggle('d-none', isChart);
+        if (isChart) initMobileCharts();
+        try { sessionStorage.setItem(VIEW_KEY, view); } catch (e) {}
+    }
+
+    if (cardsBtn && tableBtn && chartBtn) {
+        cardsBtn.addEventListener('click', function() { setMobileView('cards'); });
+        tableBtn.addEventListener('click', function() { setMobileView('table'); });
+        chartBtn.addEventListener('click', function() { setMobileView('chart'); });
+        let saved = 'cards';
+        try {
+            saved = sessionStorage.getItem(VIEW_KEY) || 'cards';
+            if (saved === 'compare') saved = 'table';
+        } catch (e) {}
+        if (saved === 'table' || saved === 'chart') setMobileView(saved);
+    }
+
+    const sortBtn = document.getElementById('mobileDateSortBtn');
+    if (sortBtn) {
+        sortBtn.addEventListener('click', function() {
+            const current = sortBtn.dataset.sort || 'asc';
+            const next = current === 'asc' ? 'desc' : 'asc';
+            const url = new URL(window.location.href);
+            url.searchParams.set('sort', next);
+            window.location.href = url.toString();
+        });
+    }
+})();
+</script>
+{% endblock %}

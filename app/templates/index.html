@@ -130,7 +130,7 @@
             <div class="card-body text-center py-3">
                 <i class="bi bi-activity text-info" style="font-size: 2rem; color: #5bb5a0 !important;"></i>
                 <h6 class="card-title mt-1 mb-2">动作记录</h6>
-                <h4 class="mb-1" id="movementCount">
+                <h4 class="text-primary mb-1" id="movementCount">
                     {% if movement_status.session %}
                         {{ movement_status.session.kick_count }}/{{ movement_target_kicks }}
                     {% else %}
@@ -203,22 +203,18 @@
 
         const kickCount = session ? session.kick_count : 0;
         countEl.textContent = kickCount + '/' + TARGET_KICKS;
-        countEl.className = 'mb-1';
+        countEl.className = 'text-primary mb-1';
 
         if (data.qualified_today) {
-            countEl.classList.add('text-success');
             hintEl.textContent = '今日已达标';
             replaceActionButton('完成', 'btn-success', 'view');
         } else if (session && session.status === 'in_progress') {
-            countEl.classList.add('text-primary');
             hintEl.textContent = '计数进行中';
             replaceActionButton('继续', 'btn-primary', 'kick');
         } else if (session) {
-            countEl.classList.add('text-warning');
             hintEl.textContent = '今日未达标';
             replaceActionButton('开始', 'btn-primary', 'kick');
         } else {
-            countEl.classList.add('text-muted');
             hintEl.textContent = '今日未记录';
             replaceActionButton('开始', 'btn-primary', 'kick');
         }
