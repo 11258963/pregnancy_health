@@ -13,6 +13,14 @@
 - **再次启程**: 支持将当前周期完整数据封存归档至底层独立文件夹，安全清零开启新周期的记录
 - **纯私有与离线友好**: 基于 SQLite 数据库，数据随设备持久化保存，不依赖任何外部云端服务
 
+## 界面预览
+### 首页日历
+![首页日历](docs/screenshots/homepage_dashboard.png)
+### 移动端显示
+![移动端显示](docs/screenshots/homepage_mobile.jpg)
+### 体重曲线
+![体重曲线](docs/screenshots/weight_chart.png)
+
 ## 部署到家庭 NAS（推荐）
 
 适用于威联通 QNAP、群晖 Synology、绿联、极空间、飞牛 fnOS 等支持 Docker 的 NAS 设备。
