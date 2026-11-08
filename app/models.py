@@ -8,6 +8,7 @@ class Settings(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     due_date = db.Column(db.Date, nullable=False)
+    birth_date = db.Column(db.Date)  # 实际生产日期
     movement_api_token = db.Column(db.String(64))
     movement_reminder_enabled = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

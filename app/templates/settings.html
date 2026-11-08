@@ -16,6 +16,13 @@
                         <input type="date" name="due_date" class="form-control"
                                value="{{ settings.due_date.strftime('%Y-%m-%d') if settings and settings.due_date else '' }}" required>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">生产日期</label>
+                        <input type="date" name="birth_date" class="form-control"
+                               value="{{ settings.birth_date.strftime('%Y-%m-%d') if settings and settings.birth_date else '' }}">
+                        <div class="form-text text-muted">如已生产，请填写实际生产日期。填写后日历将不再显示生产日之后的孕周信息。</div>
+                    </div>
+
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="movementReminder"
                                name="movement_reminder_enabled"
@@ -24,6 +31,21 @@
                     </div>
                     <button type="submit" class="btn btn-primary">保存</button>
                 </form>
+
+                {% if settings and settings.birth_date %}
+                <div class="mt-4 pt-3 border-top">
+                    <div class="p-3 rounded-3 border" style="background-color: #f0fdf4; border-color: #bbf7d0 !important;">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="fw-bold text-success"><i class="bi bi-check-circle-fill me-1"></i>人生副本档案已完成</span>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('report.index') }}" class="btn btn-success btn-sm px-3 py-2" target="_blank">
+                                <i class="bi bi-printer me-1"></i>查看并打印报告
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

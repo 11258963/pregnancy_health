@@ -9,7 +9,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # 文件上传设置 - 使用环境变量，默认为 /data/uploads
-    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or '/data/uploads'
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or (os.path.join(basedir, 'data', 'uploads') if os.path.exists(os.path.join(basedir, 'data', 'uploads')) else '/data/uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
 
     # 预产期（首次设置后保存）

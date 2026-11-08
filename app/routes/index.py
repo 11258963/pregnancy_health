@@ -34,6 +34,7 @@ def index(year=None, month=None):
         return redirect(url_for('index.setup'))
 
     due_date = settings.due_date
+    birth_date = settings.birth_date
     gestational_week, gestational_day = calculate_gestational_week(due_date)
 
     if gestational_week is None:
@@ -87,6 +88,9 @@ def index(year=None, month=None):
         try:
             day_date = date(current_month.year, current_month.month, day)
             gw, gd = calculate_gestational_week(due_date, day_date)
+            if birth_date and day_date > birth_date:
+                prev_gw = None
+                continue
             if gw is not None:
                 gestational_weeks_by_day[day] = gw
                 if gw != prev_gw:
@@ -122,7 +126,8 @@ def index(year=None, month=None):
         next_month=next_month,
         today=today,
         gestational_weeks_by_day=gestational_weeks_by_day,
-        first_day_of_week=first_day_of_week
+        first_day_of_week=first_day_of_week,
+        birth_date=birth_date
     )
 
 
@@ -172,11 +177,20 @@ def settings_page():
             flash('日期格式不正确', 'error')
             return redirect(url_for('index.settings_page'))
 
+        birth_date_str = request.form.get('birth_date')
+        birth_date_val = None
+        if birth_date_str:
+            try:
+                birth_date_val = datetime.strptime(birth_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+
         if settings:
             settings.due_date = due_date
+            settings.birth_date = birth_date_val
             settings.movement_reminder_enabled = movement_reminder
         else:
-            settings = Settings(due_date=due_date, movement_reminder_enabled=movement_reminder)
+            settings = Settings(due_date=due_date, birth_date=birth_date_val, movement_reminder_enabled=movement_reminder)
             db.session.add(settings)
 
         db.session.commit()

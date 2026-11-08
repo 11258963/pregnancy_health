@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生副本档案记录</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #5bb5a0;
+            --primary-gradient: linear-gradient(135deg, #5bb5a0 0%, #7eb8c9 100%);
+            --secondary-color: #7eb8c9;
+            --dark-color: #2c3e50;
+            --bg-light: #f8fafc;
+        }
+
+        body {
+            background-color: #eef2f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        /* 顶部操作条（屏幕上显示，打印时自动隐藏） */
+        .action-toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* 报告标准 A4 容器 */
+        .report-paper {
+            max-width: 900px;
+            margin: 24px auto 60px auto;
+            background: #ffffff;
+            padding: 48px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-radius: 16px;
+        }
+
+        /* 标题部分：简洁纯净，无多余小字 */
+        .report-header {
+            border-bottom: 2px solid #5bb5a0;
+            padding-bottom: 20px;
+            margin-bottom: 28px;
+        }
+
+        .report-title {
+            color: #2c3e50;
+            font-weight: 800;
+            font-size: 2.1rem;
+            letter-spacing: -0.5px;
+            margin-bottom: 0;
+        }
+
+        /* 档案元信息横幅 */
+        .meta-strip {
+            background: linear-gradient(135deg, rgba(91, 181, 160, 0.08) 0%, rgba(126, 184, 201, 0.12) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(91, 181, 160, 0.25);
+            padding: 18px 24px;
+            margin-bottom: 30px;
+        }
+
+        .meta-item-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .meta-item-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        /* 章节容器与标题 */
+        .report-section {
+            margin-bottom: 36px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+            font-size: 1.4rem;
+        }
+
+        /* 统计卡片小网格 */
+        .stat-badge-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat-badge-num {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #5bb5a0;
+            line-height: 1.2;
+        }
+        .stat-badge-txt {
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        /* 表格微调 */
+        .table-custom {
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        .table-custom th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            border-bottom: 2px solid #cbd5e1;
+            padding: 10px 12px;
+        }
+        .table-custom td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .badge-tag {
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        /* 附件清单气泡 */
+        .file-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 0.78rem;
+            color: #334155;
+            text-decoration: none;
+            margin: 2px 4px 2px 0;
+        }
+        .file-pill:hover {
+            border-color: #5bb5a0;
+            color: #5bb5a0;
+        }
+
+        /* 打印样式专门优化 (A4 纸打印) */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                font-size: 11pt;
+            }
+
+            .action-toolbar {
+                display: none !important;
+            }
+
+            .report-paper {
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+
+            .report-section {
+                page-break-inside: avoid;
+            }
+
+            .table-custom th {
+                background-color: #f1f5f9 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .meta-strip {
+                background: #f1f5f9 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .badge {
+                border: 1px solid #cbd5e1 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            tr, td, th {
+                page-break-inside: avoid;
+            }
+
+            canvas {
+                max-width: 100% !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 顶部常驻操作栏（打印时隐藏） -->
+<div class="action-toolbar">
+    <div class="container d-flex justify-content-between align-items-center" style="max-width: 900px;">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('index.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>返回首页
+            </a>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('report.download_attachments_zip') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center">
+                <i class="bi bi-file-earmark-zip me-1"></i>下载检查附件 (ZIP)
+            </a>
+            <button type="button" class="btn btn-success btn-sm d-flex align-items-center shadow-sm" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>打印 / 保存为 PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 报告正文 A4 纸张 -->
+<div class="container report-paper">
+
+    <!-- 报告页头：仅保留主标题，删除上下小字 -->
+    <div class="report-header">
+        <h1 class="report-title">人生副本档案记录</h1>
+    </div>
+
+    <!-- 档案核心元信息横幅：全程天数 -->
+    <div class="meta-strip">
+        <div class="row g-3 text-center text-sm-start">
+            <div class="col-4 col-sm-4">
+                <div class="meta-item-label">预产期 (EDD)</div>
+                <div class="meta-item-val">{{ due_date.strftime('%Y年%m月%d日') }}</div>
+            </div>
+            <div class="col-4 col-sm-4">
+                <div class="meta-item-label">实际生产日</div>
+                <div class="meta-item-val text-success">
+                    {% if birth_date %}{{ birth_date.strftime('%Y年%m月%d日') }}{% else %}未填写{% endif %}
+                </div>
+            </div>
+            <div class="col-4 col-sm-4">
+                <div class="meta-item-label">全程天数</div>
+                <div class="meta-item-val" style="color: #5bb5a0;">{{ actual_gestation_str }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 核心指标摘要卡片 -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-badge-card">
+                <div class="stat-badge-num">{{ total_weight_gain if total_weight_gain is not none else '—' }} <small style="font-size: 1rem;">kg</small></div>
+                <div class="stat-badge-txt">累计增重 (共 {{ weights|length }} 次记录)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-badge-card">
+                <div class="stat-badge-num" style="color: #7eb8c9;">{{ checkups|length }} <small style="font-size: 1rem;">次</small></div>
+                <div class="stat-badge-txt">累计检查 ({{ total_files_count }} 份检查附件)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-badge-card">
+                <div class="stat-badge-num" style="color: #198754;">{{ ultrasounds|length }} <small style="font-size: 1rem;">次</small></div>
+                <div class="stat-badge-txt">超声生理指标监测</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-badge-card">
+                <div class="stat-badge-num" style="color: #f59e0b;">{{ movement_stats.recorded_days }} <small style="font-size: 1rem;">天</small></div>
+                <div class="stat-badge-txt">胎动记录天数 (达标率 {{ movement_stats.qualified_rate }})</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 第一章：体重变化（仅保留图表与摘要，具体表格移入附录） -->
+    <div class="report-section">
+        <div class="section-title">
+            <i class="bi bi-graph-up-arrow"></i> 第一章 · 体重增长轨迹
+        </div>
+        
+        <p class="text-muted small mb-3">
+            起始测量体重：<strong>{{ initial_weight }} kg</strong>，最后测量体重：<strong>{{ final_weight }} kg</strong>，累计增重：<strong>{{ total_weight_gain }} kg</strong>。（详细测量记录见附录一）
+        </p>
+
+        <!-- 体重图表 Canvas -->
+        <div class="p-3 border rounded-3 bg-white">
+            <div style="height: 300px; width: 100%;">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 第二章：历次检查与附件索引 -->
+    <div class="report-section">
+        <div class="section-title">
+            <i class="bi bi-clipboard2-pulse"></i> 第二章 · 历次检查与附件索引
+        </div>
+        <p class="text-muted small mb-3">
+            共完成 {{ checkups|length }} 次检查记录，包含血液学筛查、超声、胎心及健康指标评估。
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-custom">
+                <thead>
+                    <tr>
+                        <th style="width: 14%;">检查日期</th>
+                        <th style="width: 12%;">孕周</th>
+                        <th style="width: 20%;">检查项目</th>
+                        <th style="width: 26%;">主要结论 / 医生备注</th>
+                        <th style="width: 28%;">附带报告原件索引</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in checkups %}
+                    {% set c_files = c.files.all() %}
+                    <tr>
+                        <td class="fw-semibold">{{ c.checkup_date.strftime('%Y-%m-%d') }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ c.gestational_week }}周{{ c.gestational_day }}天</span></td>
+                        <td>
+                            <strong class="text-primary-emphasis">{{ c.checkup_item }}</strong>
+                            {% if c.doctor_name %}
+                            <div class="small text-muted mt-1"><i class="bi bi-person me-1"></i>{{ c.doctor_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if c.result %}
+                            <div class="mb-1"><span class="badge bg-info-subtle text-info-emphasis me-1">结果</span>{{ c.result }}</div>
+                            {% endif %}
+                            {% if c.doctor_notes %}
+                            <div class="small text-muted"><span class="badge bg-light text-secondary me-1">医嘱</span>{{ c.doctor_notes }}</div>
+                            {% endif %}
+                            {% if not c.result and not c.doctor_notes %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if c_files %}
+                                {% for f in c_files %}
+                                <a href="{{ url_for('checkup.file', record_id=c.id, filename=f.stored_filename) }}" 
+                                   target="_blank" 
+                                   class="file-pill" 
+                                   title="点击在线查看: {{ f.original_filename }}">
+                                    {% if f.file_type == 'image' %}
+                                        <i class="bi bi-file-earmark-image text-primary"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-earmark-pdf text-danger"></i>
+                                    {% endif %}
+                                    <span>{{ f.original_filename }}</span>
+                                    <span class="text-muted" style="font-size: 0.72rem;">({{ (f.file_size / 1024)|round(0)|int }}KB)</span>
+                                </a>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted small">无附件</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 第三章：超声发育（在表格上方保留图表） -->
+    <div class="report-section">
+        <div class="section-title">
+            <i class="bi bi-aspect-ratio"></i> 第三章 · 胎儿超声影像生长发育监测
+        </div>
+        <p class="text-muted small mb-3">
+            超声测定核心生物学生理径线：双顶径 (BPD)、头围 (HC)、腹围 (AC)、股骨长 (FL)、胎心率 (HR) 与预估体重。
+        </p>
+
+        {% if ultrasounds %}
+        <!-- 超声生长曲线图表 -->
+        <div class="p-3 mb-3 border rounded-3 bg-white">
+            <div style="height: 260px; width: 100%;">
+                <canvas id="ultrasoundChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-custom text-center">
+                <thead>
+                    <tr>
+                        <th class="text-start">检查日期</th>
+                        <th>孕周</th>
+                        <th>胎心率 (HR)</th>
+                        <th>双顶径 (BPD)</th>
+                        <th>头围 (HC)</th>
+                        <th>腹围 (AC)</th>
+                        <th>股骨长 (FL)</th>
+                        <th>预估体重</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in ultrasounds %}
+                    <tr>
+                        <td class="text-start fw-bold">{{ u.record_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ u.gestational_week }}周{{ u.gestational_day }}天</td>
+                        <td>{{ u.hr ~ ' bpm' if u.hr else '—' }}</td>
+                        <td>{{ u.bpd ~ ' mm' if u.bpd else '—' }}</td>
+                        <td>{{ u.hc ~ ' mm' if u.hc else '—' }}</td>
+                        <td>{{ u.ac ~ ' mm' if u.ac else '—' }}</td>
+                        <td>{{ u.fl ~ ' mm' if u.fl else '—' }}</td>
+                        <td class="text-success fw-bold">{{ u.estimated_weight ~ ' g' if u.estimated_weight else '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-light border text-muted small">暂无超声记录。</div>
+        {% endif %}
+    </div>
+
+    <!-- 第四章：胎动健康统计（不显示具体胎动记录表格） -->
+    <div class="report-section">
+        <div class="section-title">
+            <i class="bi bi-activity"></i> 第四章 · 胎动监测与活跃度统计
+        </div>
+        <p class="text-muted small mb-3">
+            通过专注计数方式记录胎动。达标标准：2 小时计时窗口内计数满 {{ movement_stats.target_kicks }} 次。
+        </p>
+
+        <!-- 胎动指标汇总卡片 -->
+        <div class="row g-3 text-center">
+            <div class="col-4">
+                <div class="p-3 border rounded-3 bg-light">
+                    <span class="text-muted small d-block mb-1">有效记录天数</span>
+                    <strong class="fs-4">{{ movement_stats.recorded_days }}</strong> 天
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-3 border rounded-3 bg-light">
+                    <span class="text-muted small d-block mb-1">达标率</span>
+                    <strong class="fs-4 text-success">{{ movement_stats.qualified_rate }}</strong>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-3 border rounded-3 bg-light">
+                    <span class="text-muted small d-block mb-1">平均达标耗时</span>
+                    <strong class="fs-4 text-primary">{{ movement_stats.avg_qualified_duration }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 附录一：具体体重记录明细表（从第一章移到这里） -->
+    <div class="report-section border-top pt-4 mt-4">
+        <div class="section-title" style="font-size: 1.15rem;">
+            <i class="bi bi-table"></i> 附录一 · 体重记录详细数据
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom table-hover">
+                <thead>
+                    <tr>
+                        <th>记录日期</th>
+                        <th>孕周</th>
+                        <th>测量体重</th>
+                        <th>建议参考区间</th>
+                        <th>参考评估</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in weights %}
+                    <tr>
+                        <td>{{ w.record_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ w.gestational_week }}周{% if w.gestational_day %}+{{ w.gestational_day }}天{% endif %}</td>
+                        <td class="fw-bold">{{ w.weight }} kg</td>
+                        <td class="text-muted">
+                            {% if w.suggested_min and w.suggested_max %}
+                                {{ w.suggested_min|round(1) }} ~ {{ w.suggested_max|round(1) }} kg
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if w.suggested_min and w.suggested_max %}
+                                {% if w.weight < w.suggested_min %}
+                                    <span class="badge bg-warning text-dark badge-tag">偏低</span>
+                                {% elif w.weight > w.suggested_max %}
+                                    <span class="badge bg-danger badge-tag">偏高</span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success badge-tag">标准</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary badge-tag">正常</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 附录二：数据档案存储说明 -->
+    <div class="border-top pt-3 mt-4 text-muted small">
+        <div class="row">
+            <div class="col-md-8">
+                <p class="mb-1"><i class="bi bi-info-circle me-1"></i><strong>档案存储索引提示：</strong></p>
+                <p class="mb-1">所有检查原版 PDF 及高清医疗图片均安全持久化保存在本地 NAS 存储目录：<code>{{ uploads_dir }}</code>。</p>
+                <p class="mb-0">可通过顶部【下载检查附件 (ZIP)】获取全部归档文件包。</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                <span class="d-inline-block text-secondary">人生副本 · 档案记录</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Chart.js 图表渲染脚本 -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. 体重曲线
+    const weightLabels = [{% for w in weights %}"{{ w.record_date.strftime('%m-%d') }}",{% endfor %}];
+    const weightData = [{% for w in weights %}{{ w.weight }},{% endfor %}];
+    const minData = [{% for w in weights %}{{ w.suggested_min or 'null' }},{% endfor %}];
+    const maxData = [{% for w in weights %}{{ w.suggested_max or 'null' }},{% endfor %}];
+
+    const ctxWeight = document.getElementById('weightChart');
+    if (ctxWeight && weightLabels.length > 0) {
+        new Chart(ctxWeight, {
+            type: 'line',
+            data: {
+                labels: weightLabels,
+                datasets: [
+                    {
+                        label: '实测体重 (kg)',
+                        data: weightData,
+                        borderColor: '#5bb5a0',
+                        backgroundColor: '#5bb5a0',
+                        pointBackgroundColor: '#5bb5a0',
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        tension: 0.25,
+                        zIndex: 2
+                    },
+                    {
+                        label: '建议上限',
+                        data: maxData,
+                        borderColor: 'rgba(239, 68, 68, 0.45)',
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        borderWidth: 1.5,
+                        fill: false,
+                        tension: 0.2
+                    },
+                    {
+                        label: '建议下限',
+                        data: minData,
+                        borderColor: 'rgba(59, 130, 246, 0.45)',
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        borderWidth: 1.5,
+                        fill: false,
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 14,
+                            font: { size: 11 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' kg';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    },
+                    y: {
+                        ticks: { font: { size: 10 } },
+                        title: {
+                            display: true,
+                            text: '体重 (kg)',
+                            font: { size: 11 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. 超声指标发育曲线
+    const usLabels = [{% for u in ultrasounds %}"{{ u.record_date.strftime('%m-%d') }} ({{ u.gestational_week }}周)",{% endfor %}];
+    const bpdData = [{% for u in ultrasounds %}{{ u.bpd or 'null' }},{% endfor %}];
+    const hcData = [{% for u in ultrasounds %}{{ u.hc or 'null' }},{% endfor %}];
+    const acData = [{% for u in ultrasounds %}{{ u.ac or 'null' }},{% endfor %}];
+    const flData = [{% for u in ultrasounds %}{{ u.fl or 'null' }},{% endfor %}];
+    const wtData = [{% for u in ultrasounds %}{{ u.estimated_weight or 'null' }},{% endfor %}];
+
+    const ctxUs = document.getElementById('ultrasoundChart');
+    if (ctxUs && usLabels.length > 0) {
+        new Chart(ctxUs, {
+            type: 'line',
+            data: {
+                labels: usLabels,
+                datasets: [
+                    {
+                        label: '头围 HC (mm)',
+                        data: hcData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: '#3b82f6',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '腹围 AC (mm)',
+                        data: acData,
+                        borderColor: '#10b981',
+                        backgroundColor: '#10b981',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '双顶径 BPD (mm)',
+                        data: bpdData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: '#8b5cf6',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '股骨长 FL (mm)',
+                        data: flData,
+                        borderColor: '#f59e0b',
+                        backgroundColor: '#f59e0b',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '预估体重 (g)',
+                        data: wtData,
+                        borderColor: '#ef4444',
+                        backgroundColor: '#ef4444',
+                        borderDash: [3, 3],
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 11 }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: '径线 (mm)',
+                            font: { size: 10 }
+                        },
+                        ticks: { font: { size: 10 } }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: {
+                            display: true,
+                            text: '预估体重 (g)',
+                            font: { size: 10 }
+                        },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>

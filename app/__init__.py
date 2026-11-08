@@ -21,12 +21,13 @@ def create_app(config_class=Config):
     db.init_app(app)
     moment.init_app(app)
 
-    from app.routes import index, weight, checkup, diary, movement
+    from app.routes import index, weight, checkup, diary, movement, report
     app.register_blueprint(index.bp)
     app.register_blueprint(weight.bp)
     app.register_blueprint(checkup.bp)
     app.register_blueprint(diary.bp)
     app.register_blueprint(movement.bp)
+    app.register_blueprint(report.bp)
 
     with app.app_context():
         db.create_all()
@@ -51,6 +52,8 @@ def _migrate_settings_columns():
         return
     columns = {col['name'] for col in inspector.get_columns('settings')}
     statements = []
+    if 'birth_date' not in columns:
+        statements.append('ALTER TABLE settings ADD COLUMN birth_date DATE')
     if 'movement_api_token' not in columns:
         statements.append('ALTER TABLE settings ADD COLUMN movement_api_token VARCHAR(64)')
     if 'movement_reminder_enabled' not in columns:

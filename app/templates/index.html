@@ -21,8 +21,27 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>{{ gestational_week }}周{{ gestational_day }}天</h2>
-    <span class="badge bg-primary fs-6">预产期: {{ due_date.strftime('%Y年%m月%d日') }}</span>
+    {% if birth_date %}
+        <h2>已完成</h2>
+    {% else %}
+        <h2>{{ gestational_week }}周{{ gestational_day }}天</h2>
+    {% endif %}
+    <div class="d-flex align-items-center gap-2">
+        {% if birth_date %}
+            <span class="badge bg-success fs-6">生产日: {{ birth_date.strftime('%Y年%m月%d日') }}</span>
+            <a href="{{ url_for('index.settings_page') }}" class="text-muted" title="编辑设置" style="font-size: 1.2rem;">
+                <i class="bi bi-pencil-square"></i>
+            </a>
+            <button type="button" class="btn btn-link text-success p-0 border-0" data-bs-toggle="modal" data-bs-target="#reportModal" title="打印记录报告" style="font-size: 1.25rem;">
+                <i class="bi bi-printer"></i>
+            </button>
+        {% else %}
+            <span class="badge bg-primary fs-6">预产期: {{ due_date.strftime('%Y年%m月%d日') }}</span>
+            <a href="{{ url_for('index.settings_page') }}" class="text-muted" title="编辑设置" style="font-size: 1.2rem;">
+                <i class="bi bi-pencil-square"></i>
+            </a>
+        {% endif %}
+    </div>
 </div>
 
 <!-- 日历 -->
@@ -182,6 +201,26 @@
         </div>
     </div>
 
+</div>
+
+<!-- 打印报告确认 Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 380px;">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 2.5rem;"></i>
+                <h5 class="fw-bold mt-3 mb-0">人生副本档案已完成</h5>
+            </div>
+            <div class="modal-footer border-0 pt-0 d-flex justify-content-center">
+                <a href="{{ url_for('report.index') }}" class="btn btn-success btn-sm py-2 px-4" style="min-width: 160px;" target="_blank">
+                    <i class="bi bi-printer me-1"></i>查看并打印报告
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
