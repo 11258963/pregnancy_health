@@ -171,7 +171,6 @@ def settings_page():
 
     if request.method == 'POST':
         due_date_str = request.form.get('due_date')
-        movement_reminder = request.form.get('movement_reminder_enabled') == 'on'
 
         try:
             due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
@@ -190,9 +189,8 @@ def settings_page():
         if settings:
             settings.due_date = due_date
             settings.birth_date = birth_date_val
-            settings.movement_reminder_enabled = movement_reminder
         else:
-            settings = Settings(due_date=due_date, birth_date=birth_date_val, movement_reminder_enabled=movement_reminder)
+            settings = Settings(due_date=due_date, birth_date=birth_date_val)
             db.session.add(settings)
 
         db.session.commit()
@@ -210,3 +208,77 @@ def settings_page():
         settings=settings,
         kick_api_url=kick_api_url,
     )
+
+
+@bp.route('/settings/reset-cycle', methods=['POST'])
+def reset_cycle():
+    """归档当前周期数据并在底层新建归档文件夹，然后清空网站活跃数据开始新周期"""
+    import shutil
+    from app.models import CheckupFile, MovementSession, MovementKick, UltrasoundRecord, FetalRecord
+
+    settings = Settings.query.first()
+    due_date_str = settings.due_date.strftime('%Y%m%d') if (settings and settings.due_date) else 'unknown'
+    archive_date_str = datetime.now().strftime('%Y%m%d')
+    base_folder_name = f"{due_date_str}at{archive_date_str}"
+
+    upload_folder = current_app.config.get('UPLOAD_FOLDER')
+    db_uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+
+    # 确定底层 data 目录
+    if upload_folder and os.path.exists(upload_folder):
+        data_dir = os.path.dirname(os.path.abspath(upload_folder))
+    elif db_uri.startswith('sqlite:///'):
+        db_path = db_uri.replace('sqlite:///', '')
+        data_dir = os.path.dirname(os.path.abspath(db_path))
+    else:
+        data_dir = os.path.join(os.getcwd(), 'data')
+
+    archives_dir = os.path.join(data_dir, 'archive')
+    archive_folder_name = base_folder_name
+    target_archive_path = os.path.join(archives_dir, archive_folder_name)
+    if os.path.exists(target_archive_path):
+        archive_folder_name = f"{base_folder_name}_{datetime.now().strftime('%H%M%S')}"
+        target_archive_path = os.path.join(archives_dir, archive_folder_name)
+
+    os.makedirs(target_archive_path, exist_ok=True)
+
+    # 1. 复制当前 SQLite 数据库文件至归档目录
+    if db_uri.startswith('sqlite:///'):
+        db_path = db_uri.replace('sqlite:///', '')
+        if os.path.exists(db_path):
+            shutil.copy2(db_path, os.path.join(target_archive_path, 'pregnancy.db'))
+
+    # 2. 复制当前上传附件至归档目录，并清空活跃上传目录中的内容
+    if upload_folder and os.path.exists(upload_folder):
+        target_uploads_archive = os.path.join(target_archive_path, 'uploads')
+        shutil.copytree(upload_folder, target_uploads_archive, dirs_exist_ok=True)
+        for item in os.listdir(upload_folder):
+            item_path = os.path.join(upload_folder, item)
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+            elif not item.startswith('.'):
+                try:
+                    os.remove(item_path)
+                except Exception:
+                    pass
+
+    # 3. 清空活跃数据库中的所有表记录
+    try:
+        db.session.query(MovementKick).delete()
+        db.session.query(MovementSession).delete()
+        db.session.query(CheckupFile).delete()
+        db.session.query(CheckupRecord).delete()
+        db.session.query(UltrasoundRecord).delete()
+        db.session.query(WeightRecord).delete()
+        db.session.query(FetalRecord).delete()
+        db.session.query(Settings).delete()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f'归档清空数据库时出错: {str(e)}', 'error')
+        return redirect(url_for('index.settings_page'))
+
+    current_app.config['DUE_DATE'] = None
+
+    flash(f'当前周期已安全归档至底层独立文件夹 archive/{archive_folder_name}/，网站数据已清零！请设置新预产期。', 'success')
+    return redirect(url_for('index.setup'))

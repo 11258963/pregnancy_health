@@ -7,7 +7,7 @@
 
 <div class="row g-4">
     <div class="col-md-6">
-        <div class="card">
+        <div class="card h-100">
             <div class="card-header">预产期设置</div>
             <div class="card-body">
                 <form method="POST">
@@ -20,14 +20,7 @@
                         <label class="form-label">生产日期</label>
                         <input type="date" name="birth_date" class="form-control"
                                value="{{ settings.birth_date.strftime('%Y-%m-%d') if settings and settings.birth_date else '' }}">
-                        <div class="form-text text-muted">如已生产，请填写实际生产日期。填写后日历将不再显示生产日之后的孕周信息。</div>
-                    </div>
-
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="movementReminder"
-                               name="movement_reminder_enabled"
-                               {% if not settings or settings.movement_reminder_enabled %}checked{% endif %}>
-                        <label class="form-check-label" for="movementReminder">每天 19:00 动作记录提醒（需安装 PWA 并允许通知）</label>
+                        <div class="form-text text-muted">如已生产，请填写实际生产日期。填写后日历将固定在生产月。</div>
                     </div>
                     <button type="submit" class="btn btn-primary">保存</button>
                 </form>
@@ -52,8 +45,8 @@
 
     {% if kick_api_url %}
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">快捷指令 / Siri 捷径</div>
+        <div class="card h-100">
+            <div class="card-header">快捷指令</div>
             <div class="card-body">
                 <p class="text-muted">在 iOS「快捷指令」中创建「获取 URL 内容」动作，方法选 POST，填入下方地址。每次运行记一次胎动。</p>
                 <div class="mb-3">
@@ -68,6 +61,57 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- 再次启程卡片：直接把按钮移到左侧，下方显示精简描述，点击触发确认弹窗 -->
+    <div class="col-12 mt-3">
+        <div class="card border" style="background-color: #f2faf8; border-color: #b6e2d9 !important; border-radius: 14px;">
+            <div class="card-body p-3 p-md-4">
+                <div class="mb-2">
+                    <button type="button" class="btn text-nowrap px-4 py-2 fw-bold shadow-sm text-white" 
+                            style="background: linear-gradient(135deg, #5bb5a0 0%, #4a9a87 100%); border: none;"
+                            data-bs-toggle="modal" data-bs-target="#resetCycleModal">
+                        <i class="bi bi-stars me-1"></i>再次启程
+                    </button>
+                </div>
+                <p class="text-muted small mb-0">
+                    将当前周期的全部记录归档（建议先打印保存），并将网站数据清零，开启全新周期的记录。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 再次启程确认 Modal -->
+<div class="modal fade" id="resetCycleModal" tabindex="-1" aria-labelledby="resetCycleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.12);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color: #2d7a6a;" id="resetCycleModalLabel">
+                    <i class="bi bi-arrow-repeat me-2"></i>确认开启新周期？
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="p-3 rounded-3 bg-light mb-3" style="font-size: 0.9rem;">
+                    <div class="mb-2 text-dark fw-bold"><i class="bi bi-shield-check text-success me-1"></i>底层数据安全归档</div>
+                    <p class="text-muted small mb-0">
+                        当前周期的数据库、全部历史记录及检查附件原件，将自动封存归档到 <code>archive</code> 文件夹，默认按<strong>「预产期at封存日期」</strong>命名子文件夹（例如 <code>20260828at20261108</code>），永久保存不会丢失。
+                    </p>
+                </div>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-info-circle me-1 text-primary"></i>确认后，当前网站上的活跃数据将清零重置，并跳转至首次使用设置页面，供你输入新预产期并开启新记录。
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm px-3" data-bs-dismiss="modal">取消</button>
+                <form method="POST" action="{{ url_for('index.reset_cycle') }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm px-4 text-white" style="background: linear-gradient(135deg, #5bb5a0 0%, #4a9a87 100%); border: none;">
+                        <i class="bi bi-arrow-repeat me-1"></i>确认归档并再次启程
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

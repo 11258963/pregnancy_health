@@ -55,7 +55,7 @@
                 <i class="bi bi-chevron-left"></i>
             </a>
             <a href="{{ url_for('index.index') }}" class="btn btn-light btn-sm py-1 px-2">
-                {% if birth_date %}生产月{% else %}今日{% endif %}
+                {% if birth_date %}生产日{% else %}今日{% endif %}
             </a>
             <a href="{{ url_for('index.index', year=next_month.year, month=next_month.month) }}" class="btn btn-light btn-sm py-1 px-2">
                 <i class="bi bi-chevron-right"></i>

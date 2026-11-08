@@ -301,7 +301,7 @@
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('weight.chart') }}"><i class="bi bi-graph-up me-2"></i>体重记录</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('movement.count_page') }}"><i class="bi bi-activity me-2"></i>动作记录</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('checkup.list') }}"><i class="bi bi-clipboard2-pulse me-2"></i>检查记录</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('diary.index') }}"><i class="bi bi-journal-text me-2"></i>健康日记</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('movement.more_records_page') }}"><i class="bi bi-collection me-2"></i>更多记录</a></li>
                 </ul>
                 <hr class="text-white-50">
                 <ul class="nav flex-column">
@@ -354,9 +354,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'diary.index' %}active{% endif %}" href="{{ url_for('diary.index') }}">
-                    <i class="bi bi-journal-text"></i>
-                    日记
+                <a class="nav-link {% if request.endpoint == 'movement.more_records_page' %}active{% endif %}" href="{{ url_for('movement.more_records_page') }}">
+                    <i class="bi bi-collection"></i>
+                    更多
                 </a>
             </li>
             <li class="nav-item">
