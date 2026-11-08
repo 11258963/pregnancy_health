@@ -55,7 +55,7 @@
                 <i class="bi bi-chevron-left"></i>
             </a>
             <a href="{{ url_for('index.index') }}" class="btn btn-light btn-sm py-1 px-2">
-                今日
+                {% if birth_date %}生产月{% else %}今日{% endif %}
             </a>
             <a href="{{ url_for('index.index', year=next_month.year, month=next_month.month) }}" class="btn btn-light btn-sm py-1 px-2">
                 <i class="bi bi-chevron-right"></i>
@@ -80,7 +80,8 @@
                     <div></div>
                 {% else %}
                     {% set day_date = current_month.year ~ '-' ~ (current_month.month|string).zfill(2) ~ '-' ~ (day|string).zfill(2) %}
-                    {% set is_today = day == today.day and current_month.month == today.month and current_month.year == today.year %}
+                    {% set is_birth_day = birth_date and day == birth_date.day and current_month.month == birth_date.month and current_month.year == birth_date.year %}
+                    {% set is_today = (is_birth_day if birth_date else (day == today.day and current_month.month == today.month and current_month.year == today.year)) %}
                     {% set gw = gestational_weeks_by_day.get(day) %}
                     {% set show_gw = day in first_day_of_week %}
                     {% if is_today %}
@@ -116,7 +117,11 @@
         </div>
         <!-- 图例 -->
         <div class="d-flex justify-content-center gap-4 mt-3 pt-2 border-top">
+            {% if birth_date %}
+            <span><span class="rounded-circle bg-danger d-inline-block" style="width:12px;height:12px;"></span> 生产日</span>
+            {% else %}
             <span><span class="rounded-circle bg-danger d-inline-block" style="width:12px;height:12px;"></span> 今天</span>
+            {% endif %}
             <span><span class="rounded-circle bg-success d-inline-block" style="width:12px;height:12px;"></span> 有记录</span>
         </div>
     </div>

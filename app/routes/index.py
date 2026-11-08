@@ -62,6 +62,8 @@ def index(year=None, month=None):
     movement_status = build_status_payload(today)
     if year and month:
         current_month = date(year, month, 1)
+    elif birth_date:
+        current_month = date(birth_date.year, birth_date.month, 1)
     else:
         current_month = today
 
